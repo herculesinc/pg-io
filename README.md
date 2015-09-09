@@ -23,14 +23,17 @@ pg.db(settings).connect().then((connection) => {
 
 	// create a query object
 	var query = {
-		text: 'SELECT * FROM users',
+		text: 'SELECT * FROM users WHERE status = {{status}};',
+    params: {
+      status: 'active'
+    },
 		mask: 'list'
 	};
 	
 	// execute the query
 	return connection.execute(query)
-		.then((result) => {
-			// do something with the result
+		.then((results) => {
+			// result is an array of user objects
 		})
 		.then(() => connection.release());
 });

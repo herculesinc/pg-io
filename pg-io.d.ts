@@ -17,7 +17,8 @@ declare module "pg-io" {
     // DATABASE
     // --------------------------------------------------------------------------------------------
     export interface ConnectionOptions {
-        collapseQueries?: boolean;
+        collapseQueries?    : boolean;
+        startTransaction?   : boolean;
     }
 
     export interface PoolState {
