@@ -8,6 +8,10 @@
     "name": "irakliy",
     "email": "irakliy81@live.com"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/herculesinc/pg-io.git"
+  },
   "dependencies": {
     "pg": "^4.4.0"
   },

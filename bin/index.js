@@ -8,7 +8,7 @@ var Connection_1 = require('./lib/Connection');
 pg.defaults.parseInt8 = true;
 var databases = new Map();
 exports.defaults = {
-    collapseQueries: true
+    collapseQueries: false
 };
 function db(settings) {
     var db = databases.get(JSON.stringify(settings));

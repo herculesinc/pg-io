@@ -27,7 +27,7 @@ pg.defaults.parseInt8 = true;
 var databases = new Map<string, Database>();
 
 export var defaults: Options = {
-    collapseQueries: true
+    collapseQueries: false
 }
 
 export function db(settings: Settings): Database {
