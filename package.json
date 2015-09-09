@@ -1,0 +1,23 @@
+{
+  "name": "pg-io",
+  "version": "0.1.0",
+  "description": "PostgreSQL access module for web servers",
+  "main": "index.js",
+  "license": "MIT",
+  "author": {
+    "name": "irakliy",
+    "email": "irakliy81@live.com"
+  },
+  "dependencies": {
+    "pg": "^4.4.0"
+  },
+  "engines": {
+    "node": "0.12.6"
+  },
+  "devDependencies": {
+    "del": "^1.2.1",
+    "gulp": "^3.9.0",
+    "gulp-mocha": "^2.1.3",
+    "mocha": "^2.2.5"
+  }
+}
