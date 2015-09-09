@@ -1,11 +1,12 @@
 {
   "name": "pg-io",
-  "version": "0.1.0",
-  "description": "PostgreSQL access module for web servers",
+  "version": "0.1.1",
+  "description": "PostgreSQL client for node.js written in TypeScript",
   "keywords": [
     "postgres",
     "pg",
     "postgre",
+    "postgresql",
     "database"
   ],
   "main": "index.js",
