@@ -65,7 +65,7 @@ class Database {
         });
     }
 
-    getPoolState() {
+    getPoolState(): PoolState {
         var pool = pg.pools.getOrCreate(this.settings);
         return {
             size: pool.getPoolSize(),
