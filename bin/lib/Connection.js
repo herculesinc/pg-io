@@ -17,7 +17,12 @@ var Connection = (function () {
         this.options = options;
         this.client = client;
         this.done = done;
-        this.state = State.connection;
+        if (options.startTransaction) {
+            this.state = State.transactionPending;
+        }
+        else {
+            this.state = State.connection;
+        }
     }
     Object.defineProperty(Connection.prototype, "inTransaction", {
         // PUBLIC ACCESSORS

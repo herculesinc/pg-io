@@ -27,7 +27,8 @@ pg.defaults.parseInt8 = true;
 var databases = new Map<string, Database>();
 
 export var defaults: Options = {
-    collapseQueries: false
+    collapseQueries : false,
+    startTransaction: false
 }
 
 export function db(settings: Settings): Database {
@@ -52,9 +53,11 @@ class Database {
     connect(options?: Options): Promise<Connection> {
         // TODO: use a better way to merge options
         options = options || defaults;
-        if ('collapseQueries' in options === false) {
+        if ('collapseQueries' in options === false)
             options.collapseQueries = defaults.collapseQueries;
-        }
+       
+        if ('startTransaction' in options === false) 
+            options.startTransaction = defaults.startTransaction;
         
         return new Promise((resolve, reject) => {
             pg.connect(this.settings, (err, client, done) => {

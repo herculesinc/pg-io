@@ -10,7 +10,8 @@ import { PgError } from './errors'
 // INTERFACES AND ENUMS
 // ================================================================================================
 export interface Options {
-    collapseQueries?: boolean;
+    collapseQueries?    : boolean;
+    startTransaction?   : boolean;
 }
 
 enum State {
@@ -35,7 +36,12 @@ export class Connection {
         this.options = options;
         this.client = client;
         this.done = done;
-        this.state = State.connection;
+        if (options.startTransaction) {
+            this.state = State.transactionPending;
+        }
+        else{
+            this.state = State.connection;
+        }
     }
 
     // PUBLIC ACCESSORS

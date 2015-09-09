@@ -8,7 +8,8 @@ var Connection_1 = require('./lib/Connection');
 pg.defaults.parseInt8 = true;
 var databases = new Map();
 exports.defaults = {
-    collapseQueries: false
+    collapseQueries: false,
+    startTransaction: false
 };
 function db(settings) {
     var db = databases.get(JSON.stringify(settings));
@@ -29,9 +30,10 @@ var Database = (function () {
         var _this = this;
         // TODO: use a better way to merge options
         options = options || exports.defaults;
-        if ('collapseQueries' in options === false) {
+        if ('collapseQueries' in options === false)
             options.collapseQueries = exports.defaults.collapseQueries;
-        }
+        if ('startTransaction' in options === false)
+            options.startTransaction = exports.defaults.startTransaction;
         return new Promise(function (resolve, reject) {
             pg.connect(_this.settings, function (err, client, done) {
                 if (err)

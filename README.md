@@ -239,7 +239,7 @@ Starting a transaction can be done via the following method:
 connection.startTransaction(lazy?) : Promise<void>;
 ```
 
-If an optional `lazy` parameter is set to true (the default), the transaction will be started upon the first all to `connection.execute()` method. If `lazy` is set to false, the transaction will be started immediately.
+If an optional `lazy` parameter is set to true (the default), the transaction will be started upon the first call to `connection.execute()` method. If `lazy` is set to false, the transaction will be started immediately.
 
 A transaction is committed or rolled back when using the following method:
 
@@ -250,7 +250,7 @@ where `action` can be one of the following values:
 
   * 'commit' - if there is an active transaction it will be committed
   * 'rollback' - if there is an active transaction it will be rolled back
-  * undefined - if not transaction was started on the connection, `release()` method can be called without action parameter. However, if the transaction is in progress, and action parameter is omitted, and error will be thrown and the active transaction will be rolled back
+  * undefined - if not transaction was started on the connection, `release()` method can be called without `action` parameter. However, if the transaction is in progress, and action parameter is omitted, and error will be thrown and the active transaction will be rolled back before the connection is released back to the pool
   
 In the example below, query1 and query2 are executed in the context of the same transaction, then transaction is committed and connection is released back to the pool.
 ```JavaScript
@@ -266,6 +266,23 @@ connection.startTransaction()
   .then((query2Result) => connection.release('commit'));
 ```
 
+It is also possible to start a transaction at the time of connection creation by passing an options object to `database.connect()` method.
+
+```JavaScript
+import * as pg from 'pg-io';
+
+var settings = { /* connections settings */ };
+
+pg.db(settings).connect({ stratTransaction: true }).then((connection) => {
+
+  // connection is now in transaction and all queries executed
+  // through this connection will be executed in a single transaction 
+	
+  return connection.release('commit');
+});
+```
+
+
 #### Checking Connection State
 To check whether a connection is active, the following property can be used:
  ```JavaScript
@@ -279,3 +296,12 @@ To check whether a connection is in transaction, the following property can be u
 connection.inTransaction : boolean;
 ```
 A connection is considered to be in transaction from the point `startTransaction()` method is called, and until the point it is released.
+
+## License
+Copyright (c) 2015 Hercules Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
