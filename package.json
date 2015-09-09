@@ -2,6 +2,12 @@
   "name": "pg-io",
   "version": "0.1.0",
   "description": "PostgreSQL access module for web servers",
+  "keywords": [
+    "postgres",
+    "pg",
+    "postgre",
+    "database"
+  ],
   "main": "index.js",
   "license": "MIT",
   "author": {
