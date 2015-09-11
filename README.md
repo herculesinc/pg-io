@@ -24,9 +24,9 @@ pg.db(settings).connect().then((connection) => {
 	// create a query object
 	var query = {
 		text: 'SELECT * FROM users WHERE status = {{status}};',
-    params: {
-      status: 'active'
-    },
+    		params: {
+      			status: 'active'
+    		},
 		mask: 'list'
 	};
 	
