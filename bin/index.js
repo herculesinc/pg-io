@@ -7,6 +7,7 @@ var Connection_1 = require('./lib/Connection');
 // ================================================================================================
 pg.defaults.parseInt8 = true;
 var databases = new Map();
+exports.ConnectionConstructor = Connection_1.Connection;
 exports.defaults = {
     collapseQueries: false,
     startTransaction: false
@@ -38,7 +39,7 @@ var Database = (function () {
             pg.connect(_this.settings, function (err, client, done) {
                 if (err)
                     return reject(err);
-                var dao = new Connection_1.Connection(options, client, done);
+                var dao = new exports.ConnectionConstructor(options, client, done);
                 resolve(dao);
             });
         });
@@ -52,4 +53,8 @@ var Database = (function () {
     };
     return Database;
 })();
+// RE-EXPORTS
+// ================================================================================================
+var Connection_2 = require('./lib/Connection');
+exports.Connection = Connection_2.Connection;
 //# sourceMappingURL=index.js.map

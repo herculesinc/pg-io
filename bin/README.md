@@ -1,6 +1,6 @@
 # pg-io
 
-PostgreSQL client for node.js written in TypeScript
+Promise-based PostgreSQL client for node.js written in TypeScript
 
 ## Use Case
 
@@ -21,21 +21,22 @@ var settings = { /* connections settings */ };
 
 pg.db(settings).connect().then((connection) => {
 
-	// create a query object
-	var query = {
-		text: 'SELECT * FROM users WHERE status = {{status}};',
-    params: {
-      status: 'active'
-    },
-		mask: 'list'
-	};
+    // create a query object
+    var query = {
+        text: 'SELECT * FROM users WHERE status = {{status}};',
+        params: {
+            status: 'active'
+        },
+        mask: 'list'
+    };
 	
-	// execute the query
-	return connection.execute(query)
-		.then((results) => {
-			// result is an array of user objects
-		})
-		.then(() => connection.release());
+    // execute the query
+    return connection.execute(query)
+        .then((results) => {
+            // result is an array of user objects
+        })
+        // release the connection back to the pool
+        .then(() => connection.release());
 });
 ```
 
@@ -46,20 +47,20 @@ pg.db(settings).connect().then((connection) => {
 pg-io exposes a single function at the root level which can be used to obtain a reference to a database object:
 
 ```JavaScript
-function db(/* settings */) : Database;
+function db(settings) : Database;
 ```
-Where settings object should have the following form:
+where `settings` should have the following form:
 ```
 {
     host        : string;
-    port?       : number;	// optional, default 5432 is assumed
+    port?       : number;  // optional, default 5432 is assumed
     user        : string;
     password    : string;
     database    : string;
     poolSize?   : number;  // optional, default 10 is assumed
 }
 ```
-The returned Database object can be used further to establish a connection to the database. Creation of the database object does not establish a database connection but rather allocates a pool to hold connections to the database specified by the settings.
+The returned Database object can be used further to establish a connection to the database. Creation of the database object does not establish a database connection but rather allocates a pool to hold connections to the database specified by the settings object.
 
 Calling `db()` method multiple times with the same settings will return the same Database object. However, if different settings are supplied, different connection pools will be created.
 
@@ -80,12 +81,12 @@ database.getPoolState() : PoolState;
 Where PoolState has the following form:
 ```
 {
-    size		: number; // current size of the connection pool
-    available	: number; // number of available connections in the pool
+    size      : number; // current size of the connection pool
+    available : number; // number of available connections in the pool
 }
 ```
 
-Database *connections must always be released* after they are no longer needed by calling `connection.release()` method (more on this below). If you do not release connections, connection pool will be exhausted and bad things will happen.
+Database **connections must always be released** after they are no longer needed by calling `connection.release()` method (more on this below). If you do not release connections, connection pool will be exhausted and bad things will happen.
 
 ## Querying the Database
 Connection object is the main interface to the database. It should not be created directly but should rather be obtained by using `database.connect()` method. Once obtained it can be used to execute queries and manage transactions.

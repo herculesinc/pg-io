@@ -1,7 +1,7 @@
 {
   "name": "pg-io",
-  "version": "0.1.2",
-  "description": "PostgreSQL client for node.js written in TypeScript",
+  "version": "0.1.3",
+  "description": "Promise-based PostgreSQL client for node.js written in TypeScript",
   "keywords": [
     "postgres",
     "pg",

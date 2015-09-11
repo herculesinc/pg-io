@@ -13,6 +13,7 @@ declare module "pg-io" {
 
     export function db(settings: ConnectionSettings): Database;
     export var defaults: ConnectionOptions;
+    export var ConnectionConstructor: typeof Connection;
 
     // DATABASE
     // --------------------------------------------------------------------------------------------
@@ -33,7 +34,7 @@ declare module "pg-io" {
 
     // CONNECTION
     // --------------------------------------------------------------------------------------------
-    export interface Connection {
+    export class Connection {
         isActive        : boolean;
         inTransaction   : boolean;
         
@@ -46,6 +47,8 @@ declare module "pg-io" {
         execute<T>(query: ResultQuery<T>)   : Promise<any>;
         execute(query: Query)               : Promise<void>;
         execute(queries: Query[])           : Promise<Map<string,any>>;
+        
+        constructor(options: ConnectionOptions, client: any, done: (error?: Error) => void);
     }
 
     // RESULT HANDLER

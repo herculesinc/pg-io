@@ -26,6 +26,8 @@ pg.defaults.parseInt8 = true;
 
 var databases = new Map<string, Database>();
 
+export var ConnectionConstructor = Connection;
+
 export var defaults: Options = {
     collapseQueries : false,
     startTransaction: false
@@ -62,7 +64,7 @@ class Database {
         return new Promise((resolve, reject) => {
             pg.connect(this.settings, (err, client, done) => {
                 if (err) return reject(err);
-                var dao = new Connection(options, client, done);
+                var dao = new ConnectionConstructor(options, client, done);
                 resolve(dao);
             });
         });
@@ -76,3 +78,7 @@ class Database {
         };
     }
 }
+
+// RE-EXPORTS
+// ================================================================================================
+export { Connection } from './lib/Connection';
