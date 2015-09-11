@@ -21,21 +21,22 @@ var settings = { /* connections settings */ };
 
 pg.db(settings).connect().then((connection) => {
 
-	// create a query object
-	var query = {
-		text: 'SELECT * FROM users WHERE status = {{status}};',
-    		params: {
-      			status: 'active'
-    		},
-		mask: 'list'
-	};
+    // create a query object
+    var query = {
+        text: 'SELECT * FROM users WHERE status = {{status}};',
+        params: {
+            status: 'active'
+        },
+        mask: 'list'
+    };
 	
-	// execute the query
-	return connection.execute(query)
-		.then((results) => {
-			// result is an array of user objects
-		})
-		.then(() => connection.release());
+    // execute the query
+    return connection.execute(query)
+        .then((results) => {
+        // result is an array of user objects
+        })
+        // release the connection back to the pool
+        .then(() => connection.release());
 });
 ```
 
