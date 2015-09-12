@@ -49,6 +49,11 @@ declare module "pg-io" {
         execute(queries: Query[])           : Promise<Map<string,any>>;
         
         constructor(options: ConnectionOptions, client: any, done: (error?: Error) => void);
+        
+        protected state: ConnectionState;
+        protected processQueryResult(query: Query, result: DbQueryResult): any[];
+        protected rollbackAndRelease(reason?: any): Promise<any>;
+        protected releaseConnection(error?: any);
     }
 
     // RESULT HANDLER
@@ -68,5 +73,18 @@ declare module "pg-io" {
     export interface ResultQuery<T> extends Query {
         mask    : string;
         handler?: ResultHandler<T>;
+    }
+    
+    // SUPPORTING ENUMS AND INTERFACES
+    // --------------------------------------------------------------------------------------------
+    enum ConnectionState {
+        connection = 1,
+        transaction,
+        transactionPending,
+        released
+    }
+    
+    interface DbQueryResult {
+        rows: any[];
     }
 }

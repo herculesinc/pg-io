@@ -63,19 +63,21 @@ var Connection = (function () {
         var _this = this;
         if (this.state === State.released)
             return Promise.reject(new errors_1.PgError('Cannot release connection: connection has already been released'));
-        return Promise.resolve().then(function () {
-            if (action === 'commit') {
-                return _this.execute(COMMIT_TRANSACTION).catch(function (reason) {
-                    return _this.rollbackTransaction(reason);
-                });
-            }
-            else if (action === 'rollback') {
-                return _this.rollbackTransaction();
-            }
-            else if (_this.inTransaction) {
-                return _this.rollbackTransaction(new errors_1.PgError('Uncommitted transaction detected during connection release'));
-            }
-        }).then(function () { return _this.releaseConnection(); });
+        switch (action) {
+            case 'commit':
+                return this.execute(COMMIT_TRANSACTION)
+                    .then(function () { return _this.releaseConnection(); });
+            case 'rollback':
+                return this.rollbackAndRelease();
+            default:
+                if (this.inTransaction) {
+                    return this.rollbackAndRelease(new errors_1.PgError('Uncommitted transaction detected during connection release'));
+                }
+                else {
+                    this.releaseConnection();
+                    return Promise.resolve();
+                }
+        }
     };
     Connection.prototype.execute = function (queryOrQueries) {
         var _this = this;
@@ -103,7 +105,7 @@ var Connection = (function () {
             if (reason instanceof errors_1.PgError === false) {
                 reason = new errors_1.PgError(reason.message);
             }
-            return _this.rollbackTransaction(reason);
+            return _this.rollbackAndRelease(reason);
         });
     };
     // PROTECTED METHODS
@@ -120,6 +122,32 @@ var Connection = (function () {
             processedResult = result.rows;
         }
         return processedResult;
+    };
+    Connection.prototype.rollbackAndRelease = function (reason) {
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            _this.client.query(ROLLBACK_TRANSACTION.text, function (error, results) {
+                if (error) {
+                    _this.releaseConnection(error);
+                    reason ? reject(reason) : reject(error);
+                }
+                else {
+                    if (reason) {
+                        _this.releaseConnection();
+                        reject(reason);
+                    }
+                    else {
+                        _this.state = State.connection;
+                        _this.releaseConnection();
+                        resolve();
+                    }
+                }
+            });
+        });
+    };
+    Connection.prototype.releaseConnection = function (error) {
+        this.state = State.released;
+        this.done(error);
     };
     // PRIVATE METHODS
     // --------------------------------------------------------------------------------------------
@@ -160,31 +188,6 @@ var Connection = (function () {
                 error ? reject(error) : resolve(results);
             });
         });
-    };
-    Connection.prototype.rollbackTransaction = function (reason) {
-        var _this = this;
-        return new Promise(function (resolve, reject) {
-            _this.client.query(ROLLBACK_TRANSACTION.text, function (error, results) {
-                if (error) {
-                    _this.releaseConnection(error);
-                    reason ? reject(reason) : reject(error);
-                }
-                else {
-                    if (reason) {
-                        _this.releaseConnection();
-                        reject(reason);
-                    }
-                    else {
-                        _this.state = State.connection;
-                        resolve();
-                    }
-                }
-            });
-        });
-    };
-    Connection.prototype.releaseConnection = function (error) {
-        this.state = State.released;
-        this.done(error);
     };
     return Connection;
 })();

@@ -28,7 +28,7 @@ export class Connection {
     private options : Options;
     private client  : pg.Client;
     private done    : (error?: Error) => void;
-    private state   : State;
+    protected state : State;
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
@@ -78,19 +78,22 @@ export class Connection {
         if (this.state === State.released)
             return Promise.reject(new PgError('Cannot release connection: connection has already been released'));
         
-        return Promise.resolve().then(() => {
-            if (action === 'commit') {
-                return this.execute(COMMIT_TRANSACTION).catch((reason) => {
-                    return this.rollbackTransaction(reason);
-                })
-            }
-            else if (action === 'rollback') {
-                return this.rollbackTransaction();
-            }
-            else if (this.inTransaction) {
-                return this.rollbackTransaction(new PgError('Uncommitted transaction detected during connection release'));
-            }
-        }).then(() => this.releaseConnection());
+        switch (action) {
+            case 'commit':
+                return this.execute(COMMIT_TRANSACTION)
+                    .then(() => this.releaseConnection());
+            case 'rollback':
+                return this.rollbackAndRelease();
+            default:
+                if (this.inTransaction) {
+                    return this.rollbackAndRelease(
+                        new PgError('Uncommitted transaction detected during connection release'));
+                }
+                else {
+                    this.releaseConnection();
+                    return Promise.resolve();
+                }
+        }
     }
 
     // EXECUTE METHOD
@@ -126,7 +129,7 @@ export class Connection {
                 if (reason instanceof PgError === false){
                     reason = new PgError(reason.message);
                 }
-                return this.rollbackTransaction(reason);
+                return this.rollbackAndRelease(reason);
             });
     }
 
@@ -145,6 +148,33 @@ export class Connection {
             processedResult = result.rows;
         }
         return processedResult;
+    }
+    
+    protected rollbackAndRelease(reason?: any): Promise<any> {
+        return new Promise((resolve, reject) => {
+            this.client.query(ROLLBACK_TRANSACTION.text, (error, results) => {
+                if (error) {
+                    this.releaseConnection(error);
+                    reason ? reject(reason) : reject(error);
+                }
+                else {
+                    if (reason) {
+                        this.releaseConnection();
+                        reject(reason);
+                    }
+                    else {
+                        this.state = State.connection;
+                        this.releaseConnection();
+                        resolve();
+                    }
+                }
+            });
+        });
+    }
+    
+    protected releaseConnection(error?: any) {
+        this.state = State.released;
+        this.done(error);
     }
 
     // PRIVATE METHODS
@@ -192,32 +222,6 @@ export class Connection {
                 error ? reject(error) : resolve(results);
             });
         });
-    }
-
-    private rollbackTransaction(reason?: any): Promise<any> {
-        return new Promise((resolve, reject) => {
-            this.client.query(ROLLBACK_TRANSACTION.text, (error, results) => {
-                if (error) {
-                    this.releaseConnection(error);
-                    reason ? reject(reason) : reject(error);
-                }
-                else {
-                    if (reason) {
-                        this.releaseConnection();
-                        reject(reason);
-                    }
-                    else {
-                        this.state = State.connection;
-                        resolve();
-                    }
-                }
-            });
-        });
-    }
-    
-    private releaseConnection(error?: any) {
-        this.state = State.released;
-        this.done(error);
     }
 }
 
