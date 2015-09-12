@@ -77,7 +77,7 @@ declare module "pg-io" {
     
     // SUPPORTING ENUMS AND INTERFACES
     // --------------------------------------------------------------------------------------------
-    enum ConnectionState {
+    const enum ConnectionState {
         connection = 1,
         transaction,
         transactionPending,

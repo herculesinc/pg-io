@@ -1,13 +1,6 @@
 var Query_1 = require('./Query');
 var Collector_1 = require('./Collector');
 var errors_1 = require('./errors');
-var State;
-(function (State) {
-    State[State["connection"] = 1] = "connection";
-    State[State["transaction"] = 2] = "transaction";
-    State[State["transactionPending"] = 3] = "transactionPending";
-    State[State["released"] = 4] = "released";
-})(State || (State = {}));
 // CONNECTION CLASS DEFINITION
 // ================================================================================================
 var Connection = (function () {
@@ -18,24 +11,24 @@ var Connection = (function () {
         this.client = client;
         this.done = done;
         if (options.startTransaction) {
-            this.state = State.transactionPending;
+            this.state = 3 /* transactionPending */;
         }
         else {
-            this.state = State.connection;
+            this.state = 1 /* connection */;
         }
     }
     Object.defineProperty(Connection.prototype, "inTransaction", {
         // PUBLIC ACCESSORS
         // --------------------------------------------------------------------------------------------
         get: function () {
-            return (this.state === State.transaction || this.state === State.transactionPending);
+            return (this.state === 2 /* transaction */ || this.state === 3 /* transactionPending */);
         },
         enumerable: true,
         configurable: true
     });
     Object.defineProperty(Connection.prototype, "isActive", {
         get: function () {
-            return (this.state !== State.released);
+            return (this.state !== 4 /* released */);
         },
         enumerable: true,
         configurable: true
@@ -50,18 +43,18 @@ var Connection = (function () {
         if (this.inTransaction)
             return Promise.reject(new errors_1.PgError('Cannot start transaction: connection is already in transaction'));
         if (lazy) {
-            this.state = State.transactionPending;
+            this.state = 3 /* transactionPending */;
             return Promise.resolve();
         }
         else {
             return this.execute(BEGIN_TRANSACTION).then(function () {
-                _this.state = State.transaction;
+                _this.state = 2 /* transaction */;
             });
         }
     };
     Connection.prototype.release = function (action) {
         var _this = this;
-        if (this.state === State.released)
+        if (this.state === 4 /* released */)
             return Promise.reject(new errors_1.PgError('Cannot release connection: connection has already been released'));
         switch (action) {
             case 'commit':
@@ -137,7 +130,7 @@ var Connection = (function () {
                         reject(reason);
                     }
                     else {
-                        _this.state = State.connection;
+                        _this.state = 1 /* connection */;
                         _this.releaseConnection();
                         resolve();
                     }
@@ -146,7 +139,7 @@ var Connection = (function () {
         });
     };
     Connection.prototype.releaseConnection = function (error) {
-        this.state = State.released;
+        this.state = 4 /* released */;
         this.done(error);
     };
     // PRIVATE METHODS
@@ -159,9 +152,9 @@ var Connection = (function () {
             var queries = (queryOrQueries ? [queryOrQueries] : []);
         }
         var state = this.state;
-        if (this.state === State.transactionPending && queries.length > 0) {
+        if (this.state === 3 /* transactionPending */ && queries.length > 0) {
             queries.unshift(BEGIN_TRANSACTION);
-            state = State.transaction;
+            state = 2 /* transaction */;
         }
         return { queries: queries, state: state };
     };

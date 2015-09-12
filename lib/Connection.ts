@@ -14,7 +14,7 @@ export interface Options {
     startTransaction?   : boolean;
 }
 
-enum State {
+const enum State {
     connection = 1,
     transaction,
     transactionPending,
