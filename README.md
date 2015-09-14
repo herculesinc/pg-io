@@ -9,7 +9,7 @@ pg-io is best used when connection to the database is needed for a series of sho
 ## Install
 
 ```sh
-$ npm install -save pg-io
+$ npm install --save pg-io
 ```
 
 ## Example
