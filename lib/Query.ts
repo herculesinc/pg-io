@@ -31,7 +31,7 @@ var paramPattern = /{{([a-z0-9\$_]+)}}/gi;
 
 // PUBLIC FUNCTIONS
 // ================================================================================================
-export function isResultQuery(query: Query): boolean {
+export function isResultQuery(query: Query): query is ResultQuery<any> {
     return ('mask' in query);
 }
 
@@ -90,6 +90,7 @@ function processParam(value: any) {
                     paramValue = `'${value.toISOString()}'`;
                 }
                 if (value instanceof Array) {
+                    // TODO: implement array parametrizaton
                     throw new Error('Query parameter cannot be an array');
                 }
                 paramValue = JSON.stringify(value);

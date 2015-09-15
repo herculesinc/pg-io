@@ -21,16 +21,17 @@ var Collector = (function () {
         }
     }
     Collector.prototype.addResult = function (query, result) {
-        if (result === undefined)
+        if (result === undefined || this.results.has(query.name) === false)
             return;
-        if (this.results.has(query.name) && Query_1.isResultQuery(query)) {
-            if (query['mask'] === 'object') {
+        if (Query_1.isResultQuery(query)) {
+            if (query.mask === 'object') {
                 result = result ? result[0] : undefined;
                 if (result === undefined)
                     return undefined;
             }
-            if (this.results.get(query.name)) {
-                this.results.get(query.name).push(result);
+            var queryResults = this.results.get(query.name);
+            if (queryResults) {
+                queryResults.push(result);
             }
             else {
                 this.results.set(query.name, result);
@@ -50,5 +51,6 @@ var Collector = (function () {
     };
     return Collector;
 })();
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = Collector;
 //# sourceMappingURL=Collector.js.map

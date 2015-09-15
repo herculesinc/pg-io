@@ -61,6 +61,7 @@ function processParam(value) {
                     paramValue = "'" + value.toISOString() + "'";
                 }
                 if (value instanceof Array) {
+                    // TODO: implement array parametrizaton
                     throw new Error('Query parameter cannot be an array');
                 }
                 paramValue = JSON.stringify(value);
