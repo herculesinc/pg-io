@@ -7,10 +7,10 @@ Promise-based PostgreSQL client for node.js written in TypeScript
 pg-io is designed for scenarios when connection to the database is needed for a series of short and relatively simple requests. If you need a connection to execute long running queries (or queries that return large amounts of data) or require complex transaction logic, pg-io is probably not for you.
 
 Key principales for pg-io are:
-  * Single transaction - only one transaction is allowed per connection session. A transaction can be started at any point during the session, but can be comitted (or rolled back) only at the end of the session
-  * Low error tollerance - any error in query execution will terminate the session and release the connection back to the pool
+  * Single transaction - only one transaction is allowed per connection session. A transaction can be started at any point during the session, but can be committed (or rolled back) only at the end of the session
+  * Low error tolerance - any error in query execution will terminate the session and release the connection back to the pool
 
-The above would work well for many web-server scenarios when connection is needed for a single user request. If some error is encountered, all the requested chagnes are rolled back, an error is returned to the user, and the connection is release to handle the next request. 
+The above would work well for many web-server scenarios when connection is needed for a single user request. If some error is encountered, all the requested changes are rolled back, an error is returned to the user, and the connection is release to handle the next request. 
 
 ## Install
 
@@ -163,7 +163,7 @@ connection.startTransaction()
   .then(() => connection.release('commit'));
 ```
 
-Do not commit or roll back transactions manually by executing `COMMIT` or `ROLLBACK` commands. This will confuse the conneciton object and bad things may happen.
+Do not commit or roll back transactions manually by executing `COMMIT` or `ROLLBACK` commands. This will confuse the connection object and bad things may happen.
 
 #### Checking Connection State
 To check whether a connection is active, the following property can be used:
@@ -208,7 +208,7 @@ The only required property for a query is `text`, however, the behavior of the `
   * `mask` property is provided: query will be executed and the results will be returned to the user. This is suitable for executing most SELECT commands. `mask` property can have one of the following values:
     * 'list' - an array of rows retrieved from the database will be returned to the user (or `[]` if no rows were returned)
     * 'object' - first row retrieved from the database will be returned to the user (or `undefined` if no rows were returned)
-  * `name` property is provided: when `execute()` is called with an array of queries, the returned map of results will be indexed by query name. For queries which don't have a name, the results will be held under the `undefined` key. If several executed queries have the same name, an array of results will be stored under they key for that name
+  * `name` property is provided: when `execute()` is called with an array of queries, the returned map of results will be indexed by query name. For queries which don't have a name, the results will be held under the `undefined` key. If several executed queries have the same name, an array of results will be stored under the key for that name
   * `params` - query will be parametrized with the provided object (more info below)
   * `handler` - query results will be parsed using custom logic (more info below)
 
