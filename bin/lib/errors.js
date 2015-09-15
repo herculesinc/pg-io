@@ -1,4 +1,5 @@
 var util = require('util');
+// TODO: create more specialized errors
 var PgError = (function () {
     function PgError(message) {
         Error.call(this);

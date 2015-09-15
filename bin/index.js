@@ -29,12 +29,15 @@ var Database = (function () {
     }
     Database.prototype.connect = function (options) {
         var _this = this;
-        // TODO: use a better way to merge options
-        options = options || exports.defaults;
-        if ('collapseQueries' in options === false)
-            options.collapseQueries = exports.defaults.collapseQueries;
-        if ('startTransaction' in options === false)
-            options.startTransaction = exports.defaults.startTransaction;
+        // TODO: use Object.assign() to merge options
+        if (options) {
+            for (var option in exports.defaults) {
+                options[option] = (options[option] === undefined) ? exports.defaults[option] : options[option];
+            }
+        }
+        else {
+            options = exports.defaults;
+        }
         return new Promise(function (resolve, reject) {
             pg.connect(_this.settings, function (err, client, done) {
                 if (err)

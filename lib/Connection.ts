@@ -25,10 +25,10 @@ const enum State {
 // ================================================================================================
 export class Connection {
 
-    private options : Options;
-    private client  : pg.Client;
-    private done    : (error?: Error) => void;
-    protected state : State;
+    protected state     : State;
+    protected options   : Options;
+    private client      : pg.Client;
+    private done        : (error?: Error) => void;
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------

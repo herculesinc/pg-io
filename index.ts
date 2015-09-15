@@ -53,13 +53,15 @@ class Database {
     }
 
     connect(options?: Options): Promise<Connection> {
-        // TODO: use a better way to merge options
-        options = options || defaults;
-        if ('collapseQueries' in options === false)
-            options.collapseQueries = defaults.collapseQueries;
-       
-        if ('startTransaction' in options === false) 
-            options.startTransaction = defaults.startTransaction;
+        // TODO: use Object.assign() to merge options
+        if (options){
+            for (var option in defaults) {
+                options[option] = (options[option] === undefined) ? defaults[option] : options[option];
+            }    
+        }
+        else {
+            options = defaults;
+        }
         
         return new Promise((resolve, reject) => {
             pg.connect(this.settings, (err, client, done) => {
