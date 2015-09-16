@@ -40,9 +40,9 @@ var Database = (function () {
             options = exports.defaults;
         }
         return new Promise(function (resolve, reject) {
-            pg.connect(_this.settings, function (err, client, done) {
-                if (err)
-                    return reject(new errors_1.ConnectionError(err.message));
+            pg.connect(_this.settings, function (error, client, done) {
+                if (error)
+                    return reject(new errors_1.ConnectionError(error));
                 var dao = new exports.ConnectionConstructor(options, client, done);
                 resolve(dao);
             });
@@ -61,4 +61,10 @@ var Database = (function () {
 // ================================================================================================
 var Connection_2 = require('./lib/Connection');
 exports.Connection = Connection_2.Connection;
+var errors_2 = require('./lib/errors');
+exports.PgError = errors_2.PgError;
+exports.ConnectionError = errors_2.ConnectionError;
+exports.ConnectionStateError = errors_2.ConnectionStateError;
+exports.QueryError = errors_2.QueryError;
+exports.ParseError = errors_2.ParseError;
 //# sourceMappingURL=index.js.map
