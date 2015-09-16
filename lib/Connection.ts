@@ -5,7 +5,7 @@ import * as pg from 'pg';
 
 import { Query, ResultQuery, isResultQuery, isParametrized, toDbQuery, DbQuery } from './Query';
 import Collector from './Collector';
-import { PgError } from './errors'
+import { PgError, ConnectionStateError, QueryError, ParseError } from './errors'
 
 // INTERFACES AND ENUMS
 // ================================================================================================
@@ -58,10 +58,12 @@ export class Connection {
     // --------------------------------------------------------------------------------------------
     startTransaction(lazy = true): Promise<void> {
         if (this.isActive === false)
-            return Promise.reject(new PgError('Cannot start transaction: connection is not currently active'));
+            return Promise.reject(
+                new ConnectionStateError('Cannot start transaction: connection is not currently active'));
         
         if (this.inTransaction)
-            return Promise.reject(new PgError('Cannot start transaction: connection is already in transaction'));
+            return Promise.reject(
+                new ConnectionStateError('Cannot start transaction: connection is already in transaction'));
         
         if (lazy) {
             this.state = State.transactionPending;
@@ -76,7 +78,8 @@ export class Connection {
 
     release(action?: string): Promise<any> {
         if (this.state === State.released)
-            return Promise.reject(new PgError('Cannot release connection: connection has already been released'));
+            return Promise.reject(
+                new ConnectionStateError('Cannot release connection: connection has already been released'));
         
         switch (action) {
             case 'commit':
@@ -87,7 +90,7 @@ export class Connection {
             default:
                 if (this.inTransaction) {
                     return this.rollbackAndRelease(
-                        new PgError('Uncommitted transaction detected during connection release'));
+                        new ConnectionStateError('Uncommitted transaction detected during connection release'));
                 }
                 else {
                     this.releaseConnection();
@@ -103,7 +106,8 @@ export class Connection {
     execute(queries: Query[]): Promise<Map<string,any>>
     execute(queryOrQueries: Query | Query[]): Promise<any> {
         if (this.isActive === false)
-            return Promise.reject(new PgError('Cannot execute queries: connection has been released'));
+            return Promise.reject(
+                new ConnectionStateError('Cannot execute queries: connection has been released'));
 
         var { queries, state } = this.buildQueryList(queryOrQueries);
         
@@ -112,23 +116,28 @@ export class Connection {
             .then((dbQueries) => dbQueries.map((query) => this.executeQuery(query)))
             .then((queryResults) => Promise.all(queryResults))
             .then((results) => {
-                var flatResults = results.reduce((agg: any[], result) => agg.concat(result), []);
-                if (queries.length !== flatResults.length)
-                    throw new PgError(`Cannot process query results: expected (${queries.length}) results but recieved (${results.length})`);
-                
-                var collector = new Collector(queries);
-                queries.forEach((query, i) => {
-                    var result = flatResults[i];
-                    var processedResult: any = this.processQueryResult(query, result);
-                    collector.addResult(query, processedResult);
-                });
-                this.state = state;
-                return collector.getResults();    
+                try {
+                    var flatResults = results.reduce((agg: any[], result) => agg.concat(result), []);
+                    if (queries.length !== flatResults.length)
+                        throw new ParseError(`Cannot parse query results: expected (${queries.length}) results but recieved (${results.length})`);
+                    
+                    var collector = new Collector(queries);
+                    queries.forEach((query, i) => {
+                        var result = flatResults[i];
+                        var processedResult: any = this.processQueryResult(query, result);
+                        collector.addResult(query, processedResult);
+                    });
+                    this.state = state;
+                    return collector.getResults();
+                }
+                catch (error) {
+                    if (error instanceof PgError === false) {
+                        error = new ParseError(error);
+                    }
+                    throw error;
+                }    
             })
             .catch((reason) => {
-                if (reason instanceof PgError === false){
-                    reason = new PgError(reason.message);
-                }
                 return this.rollbackAndRelease(reason);
             });
     }
@@ -154,6 +163,7 @@ export class Connection {
         return new Promise((resolve, reject) => {
             this.client.query(ROLLBACK_TRANSACTION.text, (error, results) => {
                 if (error) {
+                    error = new QueryError(error);
                     this.releaseConnection(error);
                     reason ? reject(reason) : reject(error);
                 }
@@ -219,7 +229,7 @@ export class Connection {
     private executeQuery(query: DbQuery): Promise<any> {
         return new Promise((resolve, reject) => {
             this.client.query(query, (error, results) => {
-                error ? reject(error) : resolve(results);
+                error ? reject(new QueryError(error)) : resolve(results);
             });
         });
     }

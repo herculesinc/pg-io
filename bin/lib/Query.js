@@ -36,7 +36,7 @@ exports.toDbQuery = toDbQuery;
 // ================================================================================================
 function validateQuery(query) {
     if (query.text === undefined || query.text === null || query.text.trim() === '')
-        throw new errors_1.PgError('Invalid query: query text cannot be empty');
+        throw new errors_1.QueryError('Invalid query: query text cannot be empty');
 }
 function processParam(value) {
     var isSafe = true;
@@ -55,14 +55,14 @@ function processParam(value) {
                 paramValue = isSafe ? "'" + value + "'" : value;
                 break;
             case 'function':
-                throw new Error('Query parameter cannot be a function');
+                throw new errors_1.QueryError('Query parameter cannot be a function');
             default:
                 if (value instanceof Date) {
                     paramValue = "'" + value.toISOString() + "'";
                 }
                 if (value instanceof Array) {
                     // TODO: implement array parametrizaton
-                    throw new Error('Query parameter cannot be an array');
+                    throw new errors_1.QueryError('Query parameter cannot be an array');
                 }
                 paramValue = JSON.stringify(value);
                 isSafe = isSafeString(paramValue);

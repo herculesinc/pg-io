@@ -2,6 +2,7 @@
 // ================================================================================================
 import * as pg from 'pg';
 
+import { ConnectionError } from './lib/errors'
 import { Connection, Options } from './lib/Connection';
 
 // INTERFACES
@@ -64,8 +65,8 @@ class Database {
         }
         
         return new Promise((resolve, reject) => {
-            pg.connect(this.settings, (err, client, done) => {
-                if (err) return reject(err);
+            pg.connect(this.settings, (error, client, done) => {
+                if (error) return reject(new ConnectionError(error));
                 var dao = new ConnectionConstructor(options, client, done);
                 resolve(dao);
             });
@@ -84,3 +85,4 @@ class Database {
 // RE-EXPORTS
 // ================================================================================================
 export { Connection } from './lib/Connection';
+export { PgError, ConnectionError, ConnectionStateError, QueryError, ParseError } from './lib/errors';

@@ -1,6 +1,7 @@
 // IMPORTS
 // ================================================================================================
 var pg = require('pg');
+var errors_1 = require('./lib/errors');
 var Connection_1 = require('./lib/Connection');
 ;
 // GLOBALS
@@ -41,7 +42,7 @@ var Database = (function () {
         return new Promise(function (resolve, reject) {
             pg.connect(_this.settings, function (err, client, done) {
                 if (err)
-                    return reject(err);
+                    return reject(new errors_1.ConnectionError(err.message));
                 var dao = new exports.ConnectionConstructor(options, client, done);
                 resolve(dao);
             });

@@ -88,4 +88,19 @@ declare module "pg-io" {
     interface DbQueryResult {
         rows: any[];
     }
+    
+    // ERROR CLASSES
+    // --------------------------------------------------------------------------------------------
+    export class PgError extends Error {
+        cause: Error;
+        stack: string;
+        
+        constructor(cause: Error);
+	    constructor(message: string, cause?: Error);
+    }
+	
+    export class ConnectionError extends PgError {}
+    export class ConnectionStateError extends PgError {}
+    export class QueryError extends PgError {}
+    export class ParseError extends PgError {}
 }

@@ -2,7 +2,7 @@
 // ================================================================================================
 import * as assert from 'assert';
 import * as pg from './../index';
-import { PgError } from './../lib/errors';
+import { PgError, ConnectionError, ConnectionStateError, QueryError, ParseError } from './../lib/errors';
 import { User, prepareDatabase, qFetchUserById, qFetchUsersByIdList } from './setup';
 
 // CONNECTION SETTINGS
@@ -880,6 +880,7 @@ describe('Error condition tests', function () {
                     })
                     .catch((reason) => {
                         assert.ok(reason instanceof Error);
+                        assert.ok(reason instanceof QueryError);
                         assert.strictEqual(connection.isActive, false);
                         assert.strictEqual(database.getPoolState().size, 1);
                         assert.strictEqual(database.getPoolState().available, 1);
@@ -906,6 +907,7 @@ describe('Error condition tests', function () {
                             assert.fail();
                         }).catch((reason) => {
                             assert.ok(reason instanceof Error);
+                            assert.ok(reason instanceof QueryError);
                             assert.strictEqual(connection.isActive, false);
                             assert.strictEqual(database.getPoolState().size, 1);
                             assert.strictEqual(database.getPoolState().available, 1);
@@ -939,7 +941,7 @@ describe('Error condition tests', function () {
                     })
                     .catch((reason) => {
                         assert.ok(reason instanceof Error);
-                        assert.ok(reason instanceof PgError);
+                        assert.ok(reason instanceof ConnectionStateError);
                         assert.strictEqual(connection.isActive, false);
                         assert.strictEqual(database.getPoolState().size, 1);
                         assert.strictEqual(database.getPoolState().available, 1);
@@ -958,7 +960,7 @@ describe('Error condition tests', function () {
                     })
                     .catch((reason) => {
                         assert.ok(reason instanceof Error);
-                        assert.ok(reason instanceof PgError);
+                        assert.ok(reason instanceof ConnectionStateError);
                         assert.strictEqual(connection.isActive, true);
                     });
             }).then(() => connection.release('rollback'));;
@@ -975,7 +977,7 @@ describe('Error condition tests', function () {
                     })
                     .catch((reason) => {
                         assert.ok(reason instanceof Error);
-                        assert.ok(reason instanceof PgError);
+                        assert.ok(reason instanceof ConnectionStateError);
                         assert.strictEqual(connection.isActive, false);
                     });
             });
@@ -992,7 +994,7 @@ describe('Error condition tests', function () {
                     })
                     .catch((reason) => {
                         assert.ok(reason instanceof Error);
-                        assert.ok(reason instanceof PgError);
+                        assert.ok(reason instanceof ConnectionStateError);
                         assert.strictEqual(connection.isActive, false);
                     });
             });
@@ -1014,7 +1016,7 @@ describe('Error condition tests', function () {
                         })
                         .catch((reason) => {
                             assert.ok(reason instanceof Error);
-                            assert.ok(reason instanceof PgError);
+                            assert.ok(reason instanceof ConnectionStateError);
                             assert.strictEqual(connection.isActive, false);
                             assert.strictEqual(database.getPoolState().size, 1);
                             assert.strictEqual(database.getPoolState().available, 1);
@@ -1038,7 +1040,7 @@ describe('Error condition tests', function () {
                     })
                     .catch((reason) => {
                         assert.ok(reason instanceof Error);
-                        assert.ok(reason instanceof PgError);
+                        assert.ok(reason instanceof QueryError);
                         assert.strictEqual(connection.isActive, false);
                         assert.strictEqual(database.getPoolState().size, 1);
                         assert.strictEqual(database.getPoolState().available, 1);
@@ -1061,7 +1063,7 @@ describe('Error condition tests', function () {
                     })
                     .catch((reason) => {
                         assert.ok(reason instanceof Error);
-                        assert.ok(reason instanceof PgError);
+                        assert.ok(reason instanceof QueryError);
                         assert.strictEqual(connection.isActive, false);
                         assert.strictEqual(database.getPoolState().size, 1);
                         assert.strictEqual(database.getPoolState().available, 1);
@@ -1075,7 +1077,7 @@ describe('Error condition tests', function () {
         return database.connect().then((connection) => {
             return prepareDatabase(connection).then(() => {
                 var query = {
-                    text: 'SELECT * FROM users WHERE id = 1;',
+                    text: 'SELECT * FROM tmp_users WHERE id = 1;',
                     mask: 'list',
                     handler: {
                         parse: (row: any) => {
@@ -1090,12 +1092,25 @@ describe('Error condition tests', function () {
                     })
                     .catch((reason) => {
                         assert.ok(reason instanceof Error);
-                        assert.ok(reason instanceof PgError);
+                        assert.ok(reason instanceof ParseError);
                         assert.strictEqual(connection.isActive, false);
                         assert.strictEqual(database.getPoolState().size, 1);
                         assert.strictEqual(database.getPoolState().available, 1);
                     });
             });
+        });
+    });
+    
+    it('Attempt to connection to a non-existing database should throw an error', () => {
+        var settings1 = JSON.parse(JSON.stringify(settings));
+        settings1.database = 'invalid';
+        var database = pg.db(settings1);
+        return database.connect().then((connection) => {
+            assert.fail();
+        })
+        .catch((reason) => {
+            assert.ok(reason instanceof ConnectionError);
+            assert.ok(reason instanceof Error);
         });
     });
 });
