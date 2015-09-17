@@ -300,9 +300,45 @@ Safe parameters (e.g. booleans, numbers, safe strings) are inlined into the quer
   * number - always inlined
   * Date - converted to ISO string and always inlined
   * string - if the string is safe, it is inlined, otherwise the query is executed as a parametrized query
-  * object - serialized using `JSON.stringify()` and if the resulting string is safe, inlined; otherwise the query is executed as parametrized query
-  * arrays - not supported
-  * functions - not supported
+  * object - object parameters are treated as follows:
+    - `valueOf()` method is called on the object and if it returns a number, a boolean, a safe string, or a date, the value is inlined; if the returned value is an unsafe string, the query is executed as parametrized query
+    - if `valueOf()` method returns an object, the parameter is converted to string using `JSON.stringify()` and if the resulting string is safe, inlined; otherwise the query is executed as parametrized query
+  * arrays - arrays are parametrized as follows:
+    - arrays of numbers are always inlined using commas as a separator
+    - arrays of strings are either inlined (if the strings are safe) or sent to the database as parametrized queries (if strings are unsafe)
+    - all other array types (and arrays of mixed numbers and strings) are not supported and will throw QueryError
+  * functions - not supported, will throw QueryError
+  
+Examples of array parametrization:
+```JavaScript
+var query1 = {
+  text: 'SELECT * FROM users WHERE id IN ({{ids}});',
+  params: {
+    ids: [1, 2]
+  }
+};
+// query1 will be executed as:
+// SELECT * FROM users WHERE id IN (1,2);
+
+var query2 = {
+  text: 'SELECT * FROM users WHERE type IN ({{types}});',
+  params: {
+    types: ['personal', 'business']
+  }
+};
+// query2 will be executed as:
+// SELECT * FROM users WHERE type IN ('personal','business');
+
+var query3 = {
+  text: 'SELECT * FROM users WHERE name IN ({{names}});',
+  params: {
+    names: [`Test`, `T'est`, `Test2` ]
+  }
+};
+
+// query3 will be executed as:
+// SELECT * FROM users WHERE firstName IN ('Test',$1,'Test2');
+```
   
 #### Result Parsing
 

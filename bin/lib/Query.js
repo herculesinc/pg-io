@@ -28,12 +28,12 @@ function toDbQuery(query) {
     if (query.params) {
         var params = [];
         var text = query.text.replace(paramPattern, function (match, paramName) {
-            var _processParam = processParam(query.params[paramName]);
-
-            var paramValue = _processParam.paramValue;
-            var isSafe = _processParam.isSafe;
-
-            return isSafe ? paramValue : '$' + params.push(paramValue);
+            var param = query.params[paramName];
+            if (param && Array.isArray(param)) {
+                return stringifyArrayParam(param, params);
+            } else {
+                return stringifySingleParam(param, params);
+            }
         });
         return {
             text: formatQueryText(text),
@@ -49,37 +49,52 @@ function toDbQuery(query) {
 function validateQuery(query) {
     if (query.text === undefined || query.text === null || query.text.trim() === '') throw new _errors.QueryError('Invalid query: query text cannot be empty');
 }
-function processParam(value) {
-    var isSafe = true;
-    var paramValue;
-    if (value === null || value === undefined) {
-        paramValue = 'null';
-    } else {
-        switch (typeof value) {
-            case 'number':
-            case 'boolean':
-                paramValue = value.toString();
-                break;
-            case 'string':
-                isSafe = isSafeString(value);
-                paramValue = isSafe ? `'${ value }'` : value;
-                break;
-            case 'function':
-                throw new _errors.QueryError('Query parameter cannot be a function');
-            default:
-                if (value instanceof Date) {
-                    paramValue = `'${ value.toISOString() }'`;
+function stringifySingleParam(value, params) {
+    if (value === null || value === undefined) return 'null';
+    switch (typeof value) {
+        case 'number':
+        case 'boolean':
+            return value.toString();
+        case 'string':
+            return isSafeString(value) ? `'${ value }'` : '$' + params.push(value);
+        case 'function':
+            throw new _errors.QueryError('Query parameter cannot be a function');
+        default:
+            if (value instanceof Date) {
+                return `'${ value.toISOString() }'`;
+            } else if (value instanceof Array) {
+                throw new _errors.QueryError('Somehting went wrong with preparing array parameters');
+            } else {
+                var paramValue = value.valueOf();
+                if (typeof paramValue === 'object') {
+                    paramValue = JSON.stringify(value);
                 }
-                if (value instanceof Array) {
-                    // TODO: implement array parametrizaton
-                    throw new _errors.QueryError('Query parameter cannot be an array');
-                }
-                paramValue = JSON.stringify(value);
-                isSafe = isSafeString(paramValue);
-                paramValue = isSafe ? `'${ paramValue }'` : paramValue;
+                return stringifySingleParam(paramValue, params);
+            }
+    }
+}
+function stringifyArrayParam(values, params) {
+    if (values === null || values === undefined || values.length === 0) return 'null';
+    var paramValues = [];
+    var arrayType = typeof values[0];
+    for (var i = 0; i < values.length; i++) {
+        var value = values[i];
+        if (value === null || value === undefined) continue;
+        var valueType = typeof value;
+        if (valueType !== arrayType) throw new _errors.QueryError('Query parameter cannot be an array of mixed values');
+        if (valueType === 'string') {
+            if (isSafeString(value)) {
+                paramValues.push(`'${ value }'`);
+            } else {
+                paramValues.push('$' + params.push(value));
+            }
+        } else if (valueType === 'number') {
+            paramValues.push(value.toString());
+        } else {
+            throw new _errors.QueryError(`Query parameter array cannot contain ${ valueType } values`);
         }
     }
-    return { paramValue, isSafe };
+    return paramValues.join(',');
 }
 function isSafeString(value) {
     return value.indexOf('\'') === -1 && value.indexOf(`\\`) === -1;
