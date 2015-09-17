@@ -6,14 +6,14 @@ Promise-based PostgreSQL client for node.js written in TypeScript
 
 pg-io is designed for scenarios when connection to the database is needed for a series of short and relatively simple requests. If you need a connection to execute long running queries (or queries that return large amounts of data) or require complex transaction logic, pg-io is probably not for you.
 
-Key principales for pg-io are:
+Key principals for pg-io are:
   * __Single transaction__ - only one transaction is allowed per connection session. A transaction can be started at any point during the session, but can be committed (or rolled back) only at the end of the session
   * __Low error tolerance__ - any error in query execution will terminate the session and release the connection back to the pool
 
 The above would work well for many web-server scenarios when connection is needed to process a single user request. If an error is encountered, all changes are rolled back, an error is returned to the user, and the connection is release to handle the next request. 
 
 ## Requirements
-pg-io is written in TypeScript and uses many new features of ES6 (classes, built-in promisses etc.). As such, it will only work with the latest releases of Node.js which support such features. Spcifically, the most recent version of pg-io __requires Node.js 4.1 or later__.
+pg-io is written in TypeScript and uses many new features of ES6 (classes, built-in promises etc.). As such, it will only work with the latest releases of Node.js which support such features. Specifically, the most recent version of pg-io __requires Node.js 4.1 or later__.
 
 ## Install
 
@@ -267,7 +267,7 @@ var query5 = {
 };
 
 connection.execute([query4, query5]).then((result) => {
-  // result is a map layed out as follows:
+  // result is a map laid out as follows:
   // result.get(query4.name) contains results from query4
   var user1 = result.get(query4.name)[0];
   
@@ -321,8 +321,23 @@ connection.execute(query).then((result) => {
 });
 ```
 
-#### Query execution errors
-If an error is thrown during query execution or query result parsing, the connection will be immediately released back to the pool. If a connection is in transaction, then the transaction will be rolled back. Basically, any error generated within the execute method will render the connection object useless and no further communication with the database through this connection object will be possible.
+### Errors
+
+pg-io provides several customized errors which extend the built-in Error object (via base PgError class). These errors are:
+
+  * ConnectionError, thrown when:
+    - establishing a database connection fails
+    - an attempt to use an already released connection is made
+    - an attempt to release an already released connection is made
+  * TransactionError, thrown when:
+    - an attempt is made to start a transaction on a connection which is already in transaction
+    - a connection is released without committing or rolling back an active transaction
+  * QueryError, thrown when:
+    - executing of a query fails
+  * ParseError, thrown when
+    - parsing of query results fails
+
+If an error is thrown during query execution or query result parsing, the connection will be immediately released back to the pool. If a connection is in transaction, then the transaction is rolled back. Basically, any error generated within `connection.execute()` method will render the connection object useless and no further communication with the database through this connection object will be possible. The connection itself will be released to the pool so that it can be used by other clients.
 
 ## License
 Copyright (c) 2015 Hercules Inc.
