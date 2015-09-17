@@ -45,7 +45,7 @@ gulp.task('transpile', ['compile'], function () {
           //'es6.properties.computed',
           //'es6.properties.shorthand',
           'es6.spread',
-          'es6.tailCall',
+          //'es6.tailCall',
           //'es6.templateLiterals',
           //'es6.regex.unicode',
           //'es6.regex.sticky'
