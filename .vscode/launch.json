@@ -6,7 +6,7 @@
 		{
 			"name": "Launch Test",
 			"type": "node",
-			"program": "bin/tests/test.js",
+			"program": "bin/tests/run.js",
 			// Automatically stop program after launch.
 			"stopOnEntry": false,
 			"args": [],

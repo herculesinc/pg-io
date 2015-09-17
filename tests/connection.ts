@@ -2,7 +2,7 @@
 // ================================================================================================
 import * as assert from 'assert';
 import * as pg from './../index';
-import { PgError, ConnectionError, ConnectionStateError, QueryError, ParseError } from './../lib/errors';
+import { PgError, ConnectionError, TransactionError, QueryError, ParseError } from './../lib/errors';
 import { User, prepareDatabase, qFetchUserById, qFetchUsersByIdList } from './setup';
 
 // CONNECTION SETTINGS
@@ -941,7 +941,7 @@ describe('Error condition tests', function () {
                     })
                     .catch((reason) => {
                         assert.ok(reason instanceof Error);
-                        assert.ok(reason instanceof ConnectionStateError);
+                        assert.ok(reason instanceof ConnectionError);
                         assert.strictEqual(connection.isActive, false);
                         assert.strictEqual(database.getPoolState().size, 1);
                         assert.strictEqual(database.getPoolState().available, 1);
@@ -960,7 +960,7 @@ describe('Error condition tests', function () {
                     })
                     .catch((reason) => {
                         assert.ok(reason instanceof Error);
-                        assert.ok(reason instanceof ConnectionStateError);
+                        assert.ok(reason instanceof TransactionError);
                         assert.strictEqual(connection.isActive, true);
                     });
             }).then(() => connection.release('rollback'));;
@@ -977,7 +977,7 @@ describe('Error condition tests', function () {
                     })
                     .catch((reason) => {
                         assert.ok(reason instanceof Error);
-                        assert.ok(reason instanceof ConnectionStateError);
+                        assert.ok(reason instanceof ConnectionError);
                         assert.strictEqual(connection.isActive, false);
                     });
             });
@@ -994,7 +994,7 @@ describe('Error condition tests', function () {
                     })
                     .catch((reason) => {
                         assert.ok(reason instanceof Error);
-                        assert.ok(reason instanceof ConnectionStateError);
+                        assert.ok(reason instanceof TransactionError);
                         assert.strictEqual(connection.isActive, false);
                     });
             });
@@ -1016,7 +1016,7 @@ describe('Error condition tests', function () {
                         })
                         .catch((reason) => {
                             assert.ok(reason instanceof Error);
-                            assert.ok(reason instanceof ConnectionStateError);
+                            assert.ok(reason instanceof ConnectionError);
                             assert.strictEqual(connection.isActive, false);
                             assert.strictEqual(database.getPoolState().size, 1);
                             assert.strictEqual(database.getPoolState().available, 1);

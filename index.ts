@@ -1,7 +1,6 @@
 ﻿// IMPORTS
 // ================================================================================================
-import * as pg from 'pg';
-
+var pg = require('pg'); // needed for Babel transpilation
 import { ConnectionError } from './lib/errors'
 import { Connection, Options } from './lib/Connection';
 
@@ -17,8 +16,8 @@ export interface Settings {
 };
 
 export interface PoolState {
-    size: number;
-    available: number;
+    size        : number;
+    available   : number;
 }
 
 // GLOBALS
@@ -54,16 +53,7 @@ class Database {
     }
 
     connect(options?: Options): Promise<Connection> {
-        // TODO: use Object.assign() to merge options
-        if (options){
-            for (var option in defaults) {
-                options[option] = (options[option] === undefined) ? defaults[option] : options[option];
-            }    
-        }
-        else {
-            options = defaults;
-        }
-        
+        options = Object.assign({}, defaults, options);
         return new Promise((resolve, reject) => {
             pg.connect(this.settings, (error, client, done) => {
                 if (error) return reject(new ConnectionError(error));
@@ -85,4 +75,4 @@ class Database {
 // RE-EXPORTS
 // ================================================================================================
 export { Connection } from './lib/Connection';
-export { PgError, ConnectionError, ConnectionStateError, QueryError, ParseError } from './lib/errors';
+export { PgError, ConnectionError, TransactionError, QueryError, ParseError } from './lib/errors';

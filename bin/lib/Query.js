@@ -1,50 +1,60 @@
-// IMPORTS
-// ================================================================================================
-var errors_1 = require('./errors');
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+exports.isResultQuery = isResultQuery;
+exports.isParametrized = isParametrized;
+exports.toDbQuery = toDbQuery;
+
+var _errors = require('./errors');
+
 // MODULE VARIABLES
 // ================================================================================================
 var paramPattern = /{{([a-z0-9\$_]+)}}/gi;
 // PUBLIC FUNCTIONS
 // ================================================================================================
+
 function isResultQuery(query) {
-    return ('mask' in query);
+    return 'mask' in query;
 }
-exports.isResultQuery = isResultQuery;
+
 function isParametrized(query) {
-    return ('values' in query || 'params' in query);
+    return 'values' in query || 'params' in query;
 }
-exports.isParametrized = isParametrized;
+
 function toDbQuery(query) {
     validateQuery(query);
     if (query.params) {
         var params = [];
         var text = query.text.replace(paramPattern, function (match, paramName) {
-            var _a = processParam(query.params[paramName]), paramValue = _a.paramValue, isSafe = _a.isSafe;
+            var _processParam = processParam(query.params[paramName]);
+
+            var paramValue = _processParam.paramValue;
+            var isSafe = _processParam.isSafe;
+
             return isSafe ? paramValue : '$' + params.push(paramValue);
         });
         return {
             text: formatQueryText(text),
-            values: params.length > 0 ? params : undefined,
+            values: params.length > 0 ? params : undefined
         };
-    }
-    else {
+    } else {
         return { text: formatQueryText(query.text) };
     }
 }
-exports.toDbQuery = toDbQuery;
+
 // HELPER FUNCTIONS
 // ================================================================================================
 function validateQuery(query) {
-    if (query.text === undefined || query.text === null || query.text.trim() === '')
-        throw new errors_1.QueryError('Invalid query: query text cannot be empty');
+    if (query.text === undefined || query.text === null || query.text.trim() === '') throw new _errors.QueryError('Invalid query: query text cannot be empty');
 }
 function processParam(value) {
     var isSafe = true;
     var paramValue;
     if (value === null || value === undefined) {
         paramValue = 'null';
-    }
-    else {
+    } else {
         switch (typeof value) {
             case 'number':
             case 'boolean':
@@ -52,31 +62,31 @@ function processParam(value) {
                 break;
             case 'string':
                 isSafe = isSafeString(value);
-                paramValue = isSafe ? "'" + value + "'" : value;
+                paramValue = isSafe ? `'${ value }'` : value;
                 break;
             case 'function':
-                throw new errors_1.QueryError('Query parameter cannot be a function');
+                throw new _errors.QueryError('Query parameter cannot be a function');
             default:
                 if (value instanceof Date) {
-                    paramValue = "'" + value.toISOString() + "'";
+                    paramValue = `'${ value.toISOString() }'`;
                 }
                 if (value instanceof Array) {
                     // TODO: implement array parametrizaton
-                    throw new errors_1.QueryError('Query parameter cannot be an array');
+                    throw new _errors.QueryError('Query parameter cannot be an array');
                 }
                 paramValue = JSON.stringify(value);
                 isSafe = isSafeString(paramValue);
-                paramValue = isSafe ? "'" + paramValue + "'" : paramValue;
+                paramValue = isSafe ? `'${ paramValue }'` : paramValue;
         }
     }
-    return { paramValue: paramValue, isSafe: isSafe };
+    return { paramValue, isSafe };
 }
 function isSafeString(value) {
-    return (value.indexOf('\'') === -1 && value.indexOf("\\") === -1);
+    return value.indexOf('\'') === -1 && value.indexOf(`\\`) === -1;
 }
 function formatQueryText(text) {
     text = text.trim();
-    text += (text.charAt(text.length - 1) !== ';') ? ';\n' : '\n';
+    text += text.charAt(text.length - 1) !== ';' ? ';\n' : '\n';
     return text;
 }
-//# sourceMappingURL=Query.js.map
+//# sourceMappingURL=../../bin/lib/Query.js.map

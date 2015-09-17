@@ -2,15 +2,18 @@
 
 Promise-based PostgreSQL client for node.js written in TypeScript
 
-## Philosophy
+## Usage
 
 pg-io is designed for scenarios when connection to the database is needed for a series of short and relatively simple requests. If you need a connection to execute long running queries (or queries that return large amounts of data) or require complex transaction logic, pg-io is probably not for you.
 
 Key principales for pg-io are:
-  * Single transaction - only one transaction is allowed per connection session. A transaction can be started at any point during the session, but can be committed (or rolled back) only at the end of the session
-  * Low error tolerance - any error in query execution will terminate the session and release the connection back to the pool
+  * __Single transaction__ - only one transaction is allowed per connection session. A transaction can be started at any point during the session, but can be committed (or rolled back) only at the end of the session
+  * __Low error tolerance__ - any error in query execution will terminate the session and release the connection back to the pool
 
-The above would work well for many web-server scenarios when connection is needed for a single user request. If some error is encountered, all the requested changes are rolled back, an error is returned to the user, and the connection is release to handle the next request. 
+The above would work well for many web-server scenarios when connection is needed to process a single user request. If an error is encountered, all changes are rolled back, an error is returned to the user, and the connection is release to handle the next request. 
+
+## Requirements
+pg-io is written in TypeScript and uses many new features of ES6 (classes, built-in promisses etc.). As such, it will only work with the latest releases of Node.js which support such features. Spcifically, the most recent version of pg-io __requires Node.js 4.1 or later__.
 
 ## Install
 

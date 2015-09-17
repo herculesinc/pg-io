@@ -5,7 +5,7 @@ import * as pg from 'pg';
 
 import { Query, ResultQuery, isResultQuery, isParametrized, toDbQuery, DbQuery } from './Query';
 import Collector from './Collector';
-import { PgError, ConnectionStateError, QueryError, ParseError } from './errors'
+import { PgError, ConnectionError, TransactionError, QueryError, ParseError } from './errors'
 
 // INTERFACES AND ENUMS
 // ================================================================================================
@@ -59,11 +59,11 @@ export class Connection {
     startTransaction(lazy = true): Promise<void> {
         if (this.isActive === false)
             return Promise.reject(
-                new ConnectionStateError('Cannot start transaction: connection is not currently active'));
+                new ConnectionError('Cannot start transaction: connection is not currently active'));
         
         if (this.inTransaction)
             return Promise.reject(
-                new ConnectionStateError('Cannot start transaction: connection is already in transaction'));
+                new TransactionError('Cannot start transaction: connection is already in transaction'));
         
         if (lazy) {
             this.state = State.transactionPending;
@@ -79,7 +79,7 @@ export class Connection {
     release(action?: string): Promise<any> {
         if (this.state === State.released)
             return Promise.reject(
-                new ConnectionStateError('Cannot release connection: connection has already been released'));
+                new ConnectionError('Cannot release connection: connection has already been released'));
         
         switch (action) {
             case 'commit':
@@ -90,7 +90,7 @@ export class Connection {
             default:
                 if (this.inTransaction) {
                     return this.rollbackAndRelease(
-                        new ConnectionStateError('Uncommitted transaction detected during connection release'));
+                        new TransactionError('Uncommitted transaction detected during connection release'));
                 }
                 else {
                     this.releaseConnection();
@@ -107,7 +107,7 @@ export class Connection {
     execute(queryOrQueries: Query | Query[]): Promise<any> {
         if (this.isActive === false)
             return Promise.reject(
-                new ConnectionStateError('Cannot execute queries: connection has been released'));
+                new ConnectionError('Cannot execute queries: connection has been released'));
 
         var { queries, state } = this.buildQueryList(queryOrQueries);
         

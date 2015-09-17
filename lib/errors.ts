@@ -1,5 +1,3 @@
-import * as util from 'util';
-
 export class PgError extends Error {
 	name: string;
 	cause: Error;
@@ -8,20 +6,14 @@ export class PgError extends Error {
 	constructor(cause: Error);
 	constructor(message: string, cause?: Error)
 	constructor(messageOrCause: string | Error, cause?: Error) {
-		super(typeof messageOrCause === 'string'? messageOrCause : messageOrCause.message);
-		this.name = 'PgError';
-		
-		if (typeof messageOrCause === 'string') {
-			this.message = messageOrCause;
-			if (cause) {
-				this.cause = cause;
-				this.message += ': ' + cause.message;
-			}	
+		if (typeof messageOrCause === 'string'){
+			super(messageOrCause);
+			this.cause = cause;
 		}
 		else {
-			this.message = messageOrCause.message;
+			super(messageOrCause.message);
 			this.cause = messageOrCause;
-		}
+		} 
 	}
 }
 
@@ -35,13 +27,13 @@ export class ConnectionError extends PgError {
 	}
 }
 
-export class ConnectionStateError extends PgError {
+export class TransactionError extends PgError {
 	constructor(cause: Error);
 	constructor(message: string, cause?: Error)
 	constructor(messageOrCause: string | Error, cause?: Error) {
 		super(messageOrCause as any, cause);
-		this.name = 'ConnectionStateError';
-		(Error as any).captureStackTrace(this, ConnectionStateError);
+		this.name = 'TransactionError';
+		(Error as any).captureStackTrace(this, TransactionError);
 	}
 }
 
