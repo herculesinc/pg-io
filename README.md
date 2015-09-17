@@ -183,7 +183,7 @@ connection.inTransaction : boolean;
 A connection is considered to be in transaction from the point `startTransaction()` method is called, and until the point it is released via the `release()` method.
 
 ## Querying the Database
-Once a reference to a Connection object is obtained, it can be used to execute queries against the database using `dao.execute()` method:
+Once a reference to a Connection object is obtained, it can be used to execute queries against the database using `connection.execute()` method:
 
 ```JavaScript
 // executes a single query - and return a promise for the result
@@ -207,7 +207,7 @@ A query object passed to the execute method should have the following form:
 
 The only required property for a query is `text`, however, the behavior of the `execute()` method is directly controlled by other query properties. The behaviors are as follows:
 
-  * If only `text` property is provided: query will be executed against the database but no results will be returned to the user (even for SELECT statements). This is suitable for executing most INSERT, UPDATE, and DELTE commands
+  * If only `text` property is provided: query will be executed against the database but no results will be returned to the user (even for SELECT statements). This is suitable for executing most INSERT, UPDATE, and DELETE commands
   * `mask` property is provided: query will be executed and the results will be returned to the user. This is suitable for executing most SELECT commands. `mask` property can have one of the following values:
     * 'list' - an array of rows retrieved from the database will be returned to the user (or `[]` if no rows were returned)
     * 'object' - first row retrieved from the database will be returned to the user (or `undefined` if no rows were returned)
@@ -325,16 +325,16 @@ connection.execute(query).then((result) => {
 
 pg-io provides several customized errors which extend the built-in Error object (via base PgError class). These errors are:
 
-  * ConnectionError, thrown when:
+  * __ConnectionError__, thrown when:
     - establishing a database connection fails
     - an attempt to use an already released connection is made
     - an attempt to release an already released connection is made
-  * TransactionError, thrown when:
+  * __TransactionError__, thrown when:
     - an attempt is made to start a transaction on a connection which is already in transaction
     - a connection is released without committing or rolling back an active transaction
-  * QueryError, thrown when:
+  * __QueryError__, thrown when:
     - executing of a query fails
-  * ParseError, thrown when
+  * __ParseError__, thrown when
     - parsing of query results fails
 
 If an error is thrown during query execution or query result parsing, the connection will be immediately released back to the pool. If a connection is in transaction, then the transaction is rolled back. Basically, any error generated within `connection.execute()` method will render the connection object useless and no further communication with the database through this connection object will be possible. The connection itself will be released to the pool so that it can be used by other clients.
