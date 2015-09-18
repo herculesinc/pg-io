@@ -26,12 +26,16 @@ pg.defaults.parseInt8 = true;
 
 var databases = new Map<string, Database>();
 
-export var ConnectionConstructor = Connection;
+// export connection contructor to enable overriding
+export var ConnectionConstructor;
+ConnectionConstructor = Connection;
 
-export var defaults: Options = {
+// export defaults to enable overriding
+export var defaults: Options;
+defaults = {
     collapseQueries : false,
     startTransaction: false
-}
+};
 
 export function db(settings: Settings): Database {
     var db = databases.get(JSON.stringify(settings));
@@ -40,7 +44,7 @@ export function db(settings: Settings): Database {
         databases.set(JSON.stringify(settings), db);
     }
     return db;
-}
+};
 
 // DATABASE CLASS
 // ================================================================================================
@@ -57,8 +61,8 @@ class Database {
         return new Promise((resolve, reject) => {
             pg.connect(this.settings, (error, client, done) => {
                 if (error) return reject(new ConnectionError(error));
-                var dao = new ConnectionConstructor(options, client, done);
-                resolve(dao);
+                var connection = new ConnectionConstructor(options, client, done);
+                resolve(connection);
             });
         });
     }
