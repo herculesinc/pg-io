@@ -13,7 +13,7 @@ declare module "pg-io" {
 
     export function db(settings: ConnectionSettings): Database;
     export var defaults: ConnectionOptions;
-    export var ConnectionConstructor: typeof Connection;
+    export var constructors: { connection: typeof Connection; };
 
     // DATABASE
     // --------------------------------------------------------------------------------------------

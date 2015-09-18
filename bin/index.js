@@ -19,16 +19,16 @@ var pg = require('pg');
 pg.defaults.parseInt8 = true;
 var databases = new Map();
 // export connection contructor to enable overriding
-var ConnectionConstructor;
-exports.ConnectionConstructor = ConnectionConstructor;
-exports.ConnectionConstructor = ConnectionConstructor = _libConnection.Connection;
+var constructors = {
+    connection: _libConnection.Connection
+};
+exports.constructors = constructors;
 // export defaults to enable overriding
-var defaults;
-exports.defaults = defaults;
-exports.defaults = defaults = {
+var defaults = {
     collapseQueries: false,
     startTransaction: false
 };
+exports.defaults = defaults;
 
 function db(settings) {
     var db = databases.get(JSON.stringify(settings));
@@ -51,7 +51,7 @@ class Database {
         return new Promise((resolve, reject) => {
             pg.connect(this.settings, (error, client, done) => {
                 if (error) return reject(new _libErrors.ConnectionError(error));
-                var connection = new ConnectionConstructor(options, client, done);
+                var connection = new constructors.connection(options, client, done);
                 resolve(connection);
             });
         });

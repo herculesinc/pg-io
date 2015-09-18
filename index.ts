@@ -27,12 +27,12 @@ pg.defaults.parseInt8 = true;
 var databases = new Map<string, Database>();
 
 // export connection contructor to enable overriding
-export var ConnectionConstructor;
-ConnectionConstructor = Connection;
+export var constructors = {
+    connection: Connection
+};
 
 // export defaults to enable overriding
-export var defaults: Options;
-defaults = {
+export var defaults: Options = {
     collapseQueries : false,
     startTransaction: false
 };
@@ -61,7 +61,7 @@ class Database {
         return new Promise((resolve, reject) => {
             pg.connect(this.settings, (error, client, done) => {
                 if (error) return reject(new ConnectionError(error));
-                var connection = new ConnectionConstructor(options, client, done);
+                var connection = new constructors.connection(options, client, done);
                 resolve(connection);
             });
         });
