@@ -27,11 +27,11 @@ class Collector {
         }
     }
     addResult(query, result) {
-        if (result === undefined || this.results.has(query.name) === false) return;
+        if (result == undefined || this.results.has(query.name) === false) return;
         if ((0, _Query.isResultQuery)(query)) {
             if (query.mask === 'object') {
                 result = result ? result[0] : undefined;
-                if (result === undefined) return undefined;
+                if (result == undefined) return undefined;
             }
             var queryResults = this.results.get(query.name);
             if (queryResults) {

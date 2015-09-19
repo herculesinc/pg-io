@@ -30,13 +30,13 @@ export default class Collector {
 		}
 	}
 	
-	addResult(query: Query, result: any) {
-    	if (result === undefined || this.results.has(query.name) === false) return;
+	addResult(query: Query, result: any[]) {
+    	if (result == undefined || this.results.has(query.name) === false) return;
 
 		if (isResultQuery(query)) {
 			if (query.mask === 'object') {
 				result = result ? result[0] : undefined;
-				if (result === undefined) return undefined;
+				if (result == undefined) return undefined;
             }
 			
 			var queryResults = this.results.get(query.name); 

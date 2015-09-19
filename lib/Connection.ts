@@ -123,17 +123,14 @@ export class Connection {
                     
                     var collector = new Collector(queries);
                     queries.forEach((query, i) => {
-                        var result = flatResults[i];
-                        var processedResult: any = this.processQueryResult(query, result);
-                        collector.addResult(query, processedResult);
+                        collector.addResult(query, this.processQueryResult(query, flatResults[i]));
                     });
                     this.state = state;
                     return collector.getResults();
                 }
                 catch (error) {
-                    if (error instanceof PgError === false) {
+                    if (error instanceof PgError === false)
                         error = new ParseError(error);
-                    }
                     throw error;
                 }    
             })

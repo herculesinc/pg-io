@@ -84,16 +84,12 @@ class Connection {
                 if (queries.length !== flatResults.length) throw new _errors.ParseError(`Cannot parse query results: expected (${ queries.length }) results but recieved (${ results.length })`);
                 var collector = new _Collector2.default(queries);
                 queries.forEach((query, i) => {
-                    var result = flatResults[i];
-                    var processedResult = this.processQueryResult(query, result);
-                    collector.addResult(query, processedResult);
+                    collector.addResult(query, this.processQueryResult(query, flatResults[i]));
                 });
                 this.state = state;
                 return collector.getResults();
             } catch (error) {
-                if (error instanceof _errors.PgError === false) {
-                    error = new _errors.ParseError(error);
-                }
+                if (error instanceof _errors.PgError === false) error = new _errors.ParseError(error);
                 throw error;
             }
         }).catch(reason => {

@@ -16,15 +16,22 @@ var paramPattern = /{{([a-z0-9\$_]+)}}/gi;
 // ================================================================================================
 
 function isResultQuery(query) {
-    return 'mask' in query;
+    var queryMask = query['mask'];
+    if (queryMask === 'object' || queryMask === 'list') {
+        return true;
+    } else if (queryMask) {
+        throw new _errors.QueryError(`Invalid query mask: value '${ queryMask }' is not supported`);
+    } else {
+        return false;
+    }
 }
 
 function isParametrized(query) {
-    return 'values' in query || 'params' in query;
+    return query['values'] || query['params'];
 }
 
 function toDbQuery(query) {
-    validateQuery(query);
+    if (query == undefined || query.text == undefined || query.text.trim() === '') throw new _errors.QueryError('Invalid query: query text cannot be empty');
     if (query.params) {
         var params = [];
         var text = query.text.replace(paramPattern, function (match, paramName) {
@@ -46,11 +53,8 @@ function toDbQuery(query) {
 
 // HELPER FUNCTIONS
 // ================================================================================================
-function validateQuery(query) {
-    if (query.text === undefined || query.text === null || query.text.trim() === '') throw new _errors.QueryError('Invalid query: query text cannot be empty');
-}
 function stringifySingleParam(value, params) {
-    if (value === null || value === undefined) return 'null';
+    if (value == undefined) return 'null';
     switch (typeof value) {
         case 'number':
         case 'boolean':
@@ -74,12 +78,12 @@ function stringifySingleParam(value, params) {
     }
 }
 function stringifyArrayParam(values, params) {
-    if (values === null || values === undefined || values.length === 0) return 'null';
+    if (values == undefined || values.length === 0) return 'null';
     var paramValues = [];
     var arrayType = typeof values[0];
     for (var i = 0; i < values.length; i++) {
         var value = values[i];
-        if (value === null || value === undefined) continue;
+        if (value == undefined) continue;
         var valueType = typeof value;
         if (valueType !== arrayType) throw new _errors.QueryError('Query parameter cannot be an array of mixed values');
         if (valueType === 'string') {

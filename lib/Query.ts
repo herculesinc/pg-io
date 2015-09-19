@@ -32,15 +32,25 @@ var paramPattern = /{{([a-z0-9\$_]+)}}/gi;
 // PUBLIC FUNCTIONS
 // ================================================================================================
 export function isResultQuery(query: Query): query is ResultQuery<any> {
-    return ('mask' in query);
+    var queryMask = query['mask'];
+    if (queryMask === 'object' || queryMask === 'list') {
+        return true;
+    }
+    else if (queryMask) {
+        throw new QueryError(`Invalid query mask: value '${queryMask}' is not supported`);
+    }
+    else {
+        return false;
+    }
 }
 
 export function isParametrized(query: Query | DbQuery): boolean {
-    return  ('values' in query || 'params' in query);
+    return  (query['values'] || query['params']);
 }
 
 export function toDbQuery(query: Query): DbQuery {
-    validateQuery(query);
+    if (query == undefined || query.text == undefined || query.text.trim() === '')
+        throw new QueryError('Invalid query: query text cannot be empty');
     
     if (query.params) {
         var params = [];
@@ -66,18 +76,11 @@ export function toDbQuery(query: Query): DbQuery {
 
 // HELPER FUNCTIONS
 // ================================================================================================
-function validateQuery(query: Query) {
-    if (query.text === undefined || query.text === null || query.text.trim() === '')
-        throw new QueryError('Invalid query: query text cannot be empty');
-}
-
 function stringifySingleParam(value: any, params: any[]): string {
-    if (value === null || value === undefined)
-        return 'null';
+    if (value == undefined) return 'null';
     
     switch (typeof value) {
-        case 'number':
-        case 'boolean':
+        case 'number': case 'boolean':
             return value.toString();
         case 'string':
             return isSafeString(value) ? `'${value}'` : '$' + params.push(value);
@@ -101,14 +104,13 @@ function stringifySingleParam(value: any, params: any[]): string {
 }
 
 function stringifyArrayParam(values: any[], params: any[]): string {
-    if (values === null || values === undefined || values.length === 0)
-        return 'null';
+    if (values == undefined || values.length === 0) return 'null';
     
     var paramValues: string[] = [];
     var arrayType = typeof values[0];
     for (var i = 0; i < values.length; i++) {
         var value = values[i];
-        if (value === null || value === undefined) continue;
+        if (value == undefined) continue;
         
         var valueType = typeof value;
         if (valueType !== arrayType)
