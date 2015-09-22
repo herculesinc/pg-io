@@ -16,7 +16,6 @@ var pg = require('pg');
 ;
 // GLOBALS
 // ================================================================================================
-pg.defaults.parseInt8 = true;
 var databases = new Map();
 // export connection contructor to enable overriding
 var constructors = {

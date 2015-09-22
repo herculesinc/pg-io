@@ -22,8 +22,6 @@ export interface PoolState {
 
 // GLOBALS
 // ================================================================================================
-pg.defaults.parseInt8 = true;
-
 var databases = new Map<string, Database>();
 
 // export connection contructor to enable overriding
