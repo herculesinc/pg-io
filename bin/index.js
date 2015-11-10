@@ -5,6 +5,7 @@
 var pg = require('pg');
 var errors_1 = require('./lib/errors');
 var Connection_1 = require('./lib/Connection');
+var util_1 = require('./lib/util');
 ;
 // GLOBALS
 // ================================================================================================
@@ -17,6 +18,10 @@ exports.constructors = {
 exports.defaults = {
     collapseQueries: false,
     startTransaction: false
+};
+// noop logger - can be replaced with real logger
+exports.logger = {
+    log: message => {}
 };
 function db(settings) {
     var db = databases.get(JSON.stringify(settings));
@@ -36,10 +41,13 @@ class Database {
     }
     connect(options) {
         options = Object.assign({}, exports.defaults, options);
+        var start = process.hrtime();
+        exports.logger.log('Connecting to the database');
         return new Promise((resolve, reject) => {
             pg.connect(this.settings, (error, client, done) => {
                 if (error) return reject(new errors_1.ConnectionError(error));
                 var connection = new exports.constructors.connection(options, client, done);
+                exports.logger.log(`Connected in ${ util_1.since(start) } ms; pool state: ${ this.getPoolDescription() }`);
                 resolve(connection);
             });
         });
@@ -50,6 +58,10 @@ class Database {
             size: pool.getPoolSize(),
             available: pool.availableObjectsCount()
         };
+    }
+    getPoolDescription() {
+        var pool = pg.pools.getOrCreate(this.settings);
+        return `{size: ${ pool.getPoolSize() }, available: ${ pool.availableObjectsCount() }}`;
     }
 }
 // RE-EXPORTS

@@ -3,6 +3,7 @@
 import * as pg from 'pg';
 import { ConnectionError } from './lib/errors'
 import { Connection, Options } from './lib/Connection';
+import { since } from './lib/util';
 
 // INTERFACES
 // ================================================================================================
@@ -20,6 +21,10 @@ export interface PoolState {
     available   : number;
 }
 
+export interface Logger {
+    log(message: string): void;
+}
+
 // GLOBALS
 // ================================================================================================
 var databases = new Map<string, Database>();
@@ -33,6 +38,11 @@ export var constructors = {
 export var defaults: Options = {
     collapseQueries : false,
     startTransaction: false
+};
+
+// noop logger - can be replaced with real logger
+export var logger: Logger = {
+    log: (message: string) => {}    
 };
 
 export function db(settings: Settings): Database {
@@ -56,10 +66,14 @@ class Database {
 
     connect(options?: Options): Promise<Connection> {
         options = Object.assign({}, defaults, options);
+        
+        var start = process.hrtime();
+        logger.log('Connecting to the database')
         return new Promise((resolve, reject) => {
             pg.connect(this.settings, (error, client, done) => {
                 if (error) return reject(new ConnectionError(error));
                 var connection = new constructors.connection(options, client, done);
+                logger.log(`Connected in ${since(start)} ms; pool state: ${this.getPoolDescription()}`);
                 resolve(connection);
             });
         });
@@ -71,6 +85,11 @@ class Database {
             size: pool.getPoolSize(),
             available: pool.availableObjectsCount()
         };
+    }
+    
+    getPoolDescription(): string {
+        var pool = pg.pools.getOrCreate(this.settings);
+        return `{size: ${pool.getPoolSize()}, available: ${pool.availableObjectsCount()}}`;
     }
 }
 
