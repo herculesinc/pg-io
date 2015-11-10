@@ -1,6 +1,6 @@
 {
   "name": "pg-io",
-  "version": "0.3.4",
+  "version": "0.4.0",
   "description": "Promise-based PostgreSQL client for node.js written in TypeScript",
   "keywords": [
     "pg",
@@ -23,7 +23,7 @@
     "pg": "^4.4.0"
   },
   "engines": {
-    "node": "^4.1.0"
+    "node": "^5.0.0"
   },
   "devDependencies": {
     "del": "^1.2.1",

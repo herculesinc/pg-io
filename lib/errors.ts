@@ -1,7 +1,6 @@
 export class PgError extends Error {
 	name: string;
 	cause: Error;
-	stack: any;
 	
 	constructor(cause: Error);
 	constructor(message: string, cause?: Error)
@@ -13,7 +12,8 @@ export class PgError extends Error {
 		else {
 			super(messageOrCause.message);
 			this.cause = messageOrCause;
-		} 
+		}
+		(Error as any).captureStackTrace(this, this.constructor);
 	}
 }
 
@@ -22,8 +22,7 @@ export class ConnectionError extends PgError {
 	constructor(message: string, cause?: Error)
 	constructor(messageOrCause: string | Error, cause?: Error) {
 		super(messageOrCause as any, cause);
-		this.name = 'ConnectionError';
-		(Error as any).captureStackTrace(this, ConnectionError);
+		this.name = 'Connection Error';
 	}
 }
 
@@ -32,8 +31,7 @@ export class TransactionError extends PgError {
 	constructor(message: string, cause?: Error)
 	constructor(messageOrCause: string | Error, cause?: Error) {
 		super(messageOrCause as any, cause);
-		this.name = 'TransactionError';
-		(Error as any).captureStackTrace(this, TransactionError);
+		this.name = 'Transaction Error';
 	}
 }
 
@@ -42,8 +40,7 @@ export class QueryError extends PgError {
 	constructor(message: string, cause?: Error)
 	constructor(messageOrCause: string | Error, cause?: Error) {
 		super(messageOrCause as any, cause);
-		this.name = 'QueryError';
-		(Error as any).captureStackTrace(this, QueryError);
+		this.name = 'Query Error';
 	}
 }
 
@@ -52,7 +49,6 @@ export class ParseError extends PgError {
 	constructor(message: string, cause?: Error)
 	constructor(messageOrCause: string | Error, cause?: Error) {
 		super(messageOrCause as any, cause);
-		this.name = 'ParseError';
-		(Error as any).captureStackTrace(this, ParseError);
+		this.name = 'Parse Error';
 	}
 }

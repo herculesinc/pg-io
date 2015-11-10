@@ -13,6 +13,7 @@ class PgError extends Error {
             super(messageOrCause.message);
             this.cause = messageOrCause;
         }
+        Error.captureStackTrace(this, this.constructor);
     }
 }
 
@@ -21,8 +22,7 @@ exports.PgError = PgError;
 class ConnectionError extends PgError {
     constructor(messageOrCause, cause) {
         super(messageOrCause, cause);
-        this.name = 'ConnectionError';
-        Error.captureStackTrace(this, ConnectionError);
+        this.name = 'Connection Error';
     }
 }
 
@@ -31,8 +31,7 @@ exports.ConnectionError = ConnectionError;
 class TransactionError extends PgError {
     constructor(messageOrCause, cause) {
         super(messageOrCause, cause);
-        this.name = 'TransactionError';
-        Error.captureStackTrace(this, TransactionError);
+        this.name = 'Transaction Error';
     }
 }
 
@@ -41,8 +40,7 @@ exports.TransactionError = TransactionError;
 class QueryError extends PgError {
     constructor(messageOrCause, cause) {
         super(messageOrCause, cause);
-        this.name = 'QueryError';
-        Error.captureStackTrace(this, QueryError);
+        this.name = 'Query Error';
     }
 }
 
@@ -51,8 +49,7 @@ exports.QueryError = QueryError;
 class ParseError extends PgError {
     constructor(messageOrCause, cause) {
         super(messageOrCause, cause);
-        this.name = 'ParseError';
-        Error.captureStackTrace(this, ParseError);
+        this.name = 'Parse Error';
     }
 }
 

@@ -10,10 +10,10 @@ Key principals for pg-io are:
   * __Single transaction__ - only one transaction is allowed per connection session. A transaction can be started at any point during the session, but can be committed (or rolled back) only at the end of the session
   * __Low error tolerance__ - any error in query execution will terminate the session and release the connection back to the pool
 
-The above would work well for many web-server scenarios when connection is needed to process a single user request. If an error is encountered, all changes are rolled back, an error is returned to the user, and the connection is release to handle the next request. 
+The above would work well for many web-server scenarios when connection is needed to process a single user request. If an error is encountered, all changes are rolled back, an error is returned to the user, and the connection is released to handle the next request. 
 
 ## Requirements
-pg-io is written in TypeScript and uses many new features of ES6 (classes, built-in promises etc.). As such, it will only work with the latest releases of Node.js which support such features. Specifically, the most recent version of pg-io __requires Node.js 4.1 or later__.
+pg-io is written in TypeScript and uses many new features of ES6 (classes, built-in promises etc.). As such, it will only work with the latest releases of Node.js which support such features. Specifically, the most recent version of pg-io __requires Node.js 5.0 or later__.
 
 ## Install
 
@@ -134,7 +134,7 @@ In the above example, the transaction is actually not started immediately but is
 
 Do not start transactions manually by executing `BEGIN` commands. Doing so will confuse the connection object and bad things may happen.
 
-### Existing Transaction Mode
+### Exiting Transaction Mode
 Transactions can be committed or rolled back by using the following method:
 
 ```JavaScript
