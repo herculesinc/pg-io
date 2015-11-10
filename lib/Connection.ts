@@ -4,7 +4,7 @@ import * as assert from 'assert';
 import * as pg from 'pg';
 
 import { Query, ResultQuery, isResultQuery, isParametrized, toDbQuery, DbQuery } from './Query';
-import Collector from './Collector';
+import { Collector } from './Collector';
 import { PgError, ConnectionError, TransactionError, QueryError, ParseError } from './errors'
 
 // INTERFACES AND ENUMS

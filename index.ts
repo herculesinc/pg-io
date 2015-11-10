@@ -1,6 +1,6 @@
 ﻿// IMPORTS
 // ================================================================================================
-var pg = require('pg'); // needed for Babel transpilation
+import * as pg from 'pg';
 import { ConnectionError } from './lib/errors'
 import { Connection, Options } from './lib/Connection';
 

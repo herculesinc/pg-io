@@ -6,7 +6,7 @@ import { Query, ResultQuery, isResultQuery } from './Query';
 
 // CLASS DEFINITION
 // ================================================================================================
-export default class Collector {
+export class Collector {
 	
 	private results: Map<string, any>;
 	private singleResult: boolean;

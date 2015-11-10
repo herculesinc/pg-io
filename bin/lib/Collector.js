@@ -1,20 +1,14 @@
 'use strict';
 
-Object.defineProperty(exports, '__esModule', {
-    value: true
-});
-
-var _Query = require('./Query');
-
+var Query_1 = require('./Query');
 // CLASS DEFINITION
 // ================================================================================================
-
 class Collector {
     constructor(queries) {
         this.results = new Map();
         this.singleResult = true;
         for (let query of queries) {
-            if ((0, _Query.isResultQuery)(query)) {
+            if (Query_1.isResultQuery(query)) {
                 if (this.results.has(query.name)) {
                     if (this.results.get(query.name) === undefined) {
                         this.results.set(query.name, []);
@@ -28,7 +22,7 @@ class Collector {
     }
     addResult(query, result) {
         if (result == undefined || this.results.has(query.name) === false) return;
-        if ((0, _Query.isResultQuery)(query)) {
+        if (Query_1.isResultQuery(query)) {
             if (query.mask === 'object') {
                 result = result ? result[0] : undefined;
                 if (result == undefined) return undefined;
@@ -51,7 +45,5 @@ class Collector {
         }
     }
 }
-
-exports.default = Collector;
-module.exports = exports.default;
+exports.Collector = Collector;
 //# sourceMappingURL=../../bin/lib/Collector.js.map

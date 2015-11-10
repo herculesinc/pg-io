@@ -1,37 +1,30 @@
+// IMPORTS
+// ================================================================================================
 'use strict';
 
-Object.defineProperty(exports, '__esModule', {
-    value: true
-});
-exports.isResultQuery = isResultQuery;
-exports.isParametrized = isParametrized;
-exports.toDbQuery = toDbQuery;
-
-var _errors = require('./errors');
-
+var errors_1 = require('./errors');
 // MODULE VARIABLES
 // ================================================================================================
 var paramPattern = /{{([a-z0-9\$_]+)}}/gi;
 // PUBLIC FUNCTIONS
 // ================================================================================================
-
 function isResultQuery(query) {
     var queryMask = query['mask'];
     if (queryMask === 'object' || queryMask === 'list') {
         return true;
     } else if (queryMask) {
-        throw new _errors.QueryError(`Invalid query mask: value '${ queryMask }' is not supported`);
+        throw new errors_1.QueryError(`Invalid query mask: value '${ queryMask }' is not supported`);
     } else {
         return false;
     }
 }
-
+exports.isResultQuery = isResultQuery;
 function isParametrized(query) {
     return query['values'] || query['params'];
 }
-
+exports.isParametrized = isParametrized;
 function toDbQuery(query) {
-    if (query == undefined || query.text == undefined || query.text.trim() === '') throw new _errors.QueryError('Invalid query: query text cannot be empty');
+    if (query == undefined || query.text == undefined || query.text.trim() === '') throw new errors_1.QueryError('Invalid query: query text cannot be empty');
     if (query.params) {
         var params = [];
         var text = query.text.replace(paramPattern, function (match, paramName) {
@@ -50,7 +43,7 @@ function toDbQuery(query) {
         return { text: formatQueryText(query.text) };
     }
 }
-
+exports.toDbQuery = toDbQuery;
 // HELPER FUNCTIONS
 // ================================================================================================
 function stringifySingleParam(value, params) {
@@ -62,12 +55,12 @@ function stringifySingleParam(value, params) {
         case 'string':
             return isSafeString(value) ? `'${ value }'` : '$' + params.push(value);
         case 'function':
-            throw new _errors.QueryError('Query parameter cannot be a function');
+            throw new errors_1.QueryError('Query parameter cannot be a function');
         default:
             if (value instanceof Date) {
                 return `'${ value.toISOString() }'`;
             } else if (value instanceof Array) {
-                throw new _errors.QueryError('Somehting went wrong with preparing array parameters');
+                throw new errors_1.QueryError('Somehting went wrong with preparing array parameters');
             } else {
                 var paramValue = value.valueOf();
                 if (typeof paramValue === 'object') {
@@ -85,7 +78,7 @@ function stringifyArrayParam(values, params) {
         var value = values[i];
         if (value == undefined) continue;
         var valueType = typeof value;
-        if (valueType !== arrayType) throw new _errors.QueryError('Query parameter cannot be an array of mixed values');
+        if (valueType !== arrayType) throw new errors_1.QueryError('Query parameter cannot be an array of mixed values');
         if (valueType === 'string') {
             if (isSafeString(value)) {
                 paramValues.push(`'${ value }'`);
@@ -95,7 +88,7 @@ function stringifyArrayParam(values, params) {
         } else if (valueType === 'number') {
             paramValues.push(value.toString());
         } else {
-            throw new _errors.QueryError(`Query parameter array cannot contain ${ valueType } values`);
+            throw new errors_1.QueryError(`Query parameter array cannot contain ${ valueType } values`);
         }
     }
     return paramValues.join(',');

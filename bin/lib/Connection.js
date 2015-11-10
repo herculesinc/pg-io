@@ -1,22 +1,10 @@
 'use strict';
 
-Object.defineProperty(exports, '__esModule', {
-    value: true
-});
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
-
-var _Query = require('./Query');
-
-var _Collector = require('./Collector');
-
-var _Collector2 = _interopRequireDefault(_Collector);
-
-var _errors = require('./errors');
-
+var Query_1 = require('./Query');
+var Collector_1 = require('./Collector');
+var errors_1 = require('./errors');
 // CONNECTION CLASS DEFINITION
 // ================================================================================================
-
 class Connection {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
@@ -43,8 +31,8 @@ class Connection {
     startTransaction() {
         let lazy = arguments.length <= 0 || arguments[0] === undefined ? true : arguments[0];
 
-        if (this.isActive === false) return Promise.reject(new _errors.ConnectionError('Cannot start transaction: connection is not currently active'));
-        if (this.inTransaction) return Promise.reject(new _errors.TransactionError('Cannot start transaction: connection is already in transaction'));
+        if (this.isActive === false) return Promise.reject(new errors_1.ConnectionError('Cannot start transaction: connection is not currently active'));
+        if (this.inTransaction) return Promise.reject(new errors_1.TransactionError('Cannot start transaction: connection is already in transaction'));
         if (lazy) {
             this.state = 3;
             /* transactionPending */return Promise.resolve();
@@ -55,7 +43,7 @@ class Connection {
         }
     }
     /* transaction */release(action) {
-        if (this.state === 4 /* released */) return Promise.reject(new _errors.ConnectionError('Cannot release connection: connection has already been released'));
+        if (this.state === 4 /* released */) return Promise.reject(new errors_1.ConnectionError('Cannot release connection: connection has already been released'));
         switch (action) {
             case 'commit':
                 return this.execute(COMMIT_TRANSACTION).then(() => this.releaseConnection());
@@ -63,7 +51,7 @@ class Connection {
                 return this.rollbackAndRelease();
             default:
                 if (this.inTransaction) {
-                    return this.rollbackAndRelease(new _errors.TransactionError('Uncommitted transaction detected during connection release'));
+                    return this.rollbackAndRelease(new errors_1.TransactionError('Uncommitted transaction detected during connection release'));
                 } else {
                     this.releaseConnection();
                     return Promise.resolve();
@@ -71,7 +59,7 @@ class Connection {
         }
     }
     execute(queryOrQueries) {
-        if (this.isActive === false) return Promise.reject(new _errors.ConnectionError('Cannot execute queries: connection has been released'));
+        if (this.isActive === false) return Promise.reject(new errors_1.ConnectionError('Cannot execute queries: connection has been released'));
 
         var _buildQueryList = this.buildQueryList(queryOrQueries);
 
@@ -81,15 +69,15 @@ class Connection {
         return Promise.resolve().then(() => this.buildDbQueries(queries)).then(dbQueries => dbQueries.map(query => this.executeQuery(query))).then(queryResults => Promise.all(queryResults)).then(results => {
             try {
                 var flatResults = results.reduce((agg, result) => agg.concat(result), []);
-                if (queries.length !== flatResults.length) throw new _errors.ParseError(`Cannot parse query results: expected (${ queries.length }) results but recieved (${ results.length })`);
-                var collector = new _Collector2.default(queries);
+                if (queries.length !== flatResults.length) throw new errors_1.ParseError(`Cannot parse query results: expected (${ queries.length }) results but recieved (${ results.length })`);
+                var collector = new Collector_1.Collector(queries);
                 queries.forEach((query, i) => {
                     collector.addResult(query, this.processQueryResult(query, flatResults[i]));
                 });
                 this.state = state;
                 return collector.getResults();
             } catch (error) {
-                if (error instanceof _errors.PgError === false) error = new _errors.ParseError(error);
+                if (error instanceof errors_1.PgError === false) error = new errors_1.ParseError(error);
                 throw error;
             }
         }).catch(reason => {
@@ -114,7 +102,7 @@ class Connection {
         return new Promise((resolve, reject) => {
             this.client.query(ROLLBACK_TRANSACTION.text, (error, results) => {
                 if (error) {
-                    error = new _errors.QueryError(error);
+                    error = new errors_1.QueryError(error);
                     this.releaseConnection(error);
                     reason ? reject(reason) : reject(error);
                 } else {
@@ -153,8 +141,8 @@ class Connection {
         var dbQueries = [];
         var previousQuery;
         for (var i = 0; i < queries.length; i++) {
-            var dbQuery = (0, _Query.toDbQuery)(queries[i]);
-            if (this.options.collapseQueries && previousQuery && !(0, _Query.isParametrized)(dbQuery) && !(0, _Query.isParametrized)(previousQuery)) {
+            var dbQuery = Query_1.toDbQuery(queries[i]);
+            if (this.options.collapseQueries && previousQuery && !Query_1.isParametrized(dbQuery) && !Query_1.isParametrized(previousQuery)) {
                 previousQuery.text += dbQuery.text;
                 previousQuery.multiResult = true;
             } else {
@@ -167,15 +155,14 @@ class Connection {
     executeQuery(query) {
         return new Promise((resolve, reject) => {
             this.client.query(query, (error, results) => {
-                error ? reject(new _errors.QueryError(error)) : resolve(results);
+                error ? reject(new errors_1.QueryError(error)) : resolve(results);
             });
         });
     }
 }
-
+exports.Connection = Connection;
 // COMMON QUERIES
 // ================================================================================================
-exports.Connection = Connection;
 var BEGIN_TRANSACTION = {
     text: 'BEGIN;'
 };
