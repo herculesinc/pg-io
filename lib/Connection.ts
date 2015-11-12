@@ -3,7 +3,7 @@
 import * as assert from 'assert';
 import * as pg from 'pg';
 
-import { Database, logger as log } from './../index';
+import { Database, config } from './../index';
 import { Query, ResultQuery, isResultQuery, isParametrized, toDbQuery, DbQuery } from './Query';
 import { Collector } from './Collector';
 import { PgError, ConnectionError, TransactionError, QueryError, ParseError } from './errors'
@@ -32,14 +32,16 @@ export class Connection {
     protected database  : Database;
     private client      : pg.Client;
     private done        : (error?: Error) => void;
+    private log         : (message: string) => void;
 
     // CONSTRUCTOR AND INJECTOR
     // --------------------------------------------------------------------------------------------
     constructor(database: Database, options: Options) {
         this.database = database;
         this.options = options;
+        this.log = config.logger ? config.logger.log : undefined;
         if (options.startTransaction) {
-            log && log(`Starting database transaction in lazy mode`)
+            this.log && this.log(`Starting database transaction in lazy mode`)
             this.state = State.transactionPending;
         }
         else{
@@ -73,7 +75,7 @@ export class Connection {
             return Promise.reject(
                 new TransactionError('Cannot start transaction: connection is already in transaction'));
         
-        log && log(`Starting database transaction in ${lazy ? 'lazy' : 'eager'} mode`)
+        this.log && this.log(`Starting database transaction in ${lazy ? 'lazy' : 'eager'} mode`)
         if (lazy) {
             this.state = State.transactionPending;
             return Promise.resolve();
@@ -93,28 +95,28 @@ export class Connection {
         var start = process.hrtime();
         switch (action) {
             case 'commit':
-                log && log('Committing transaction and releasing connection back to the pool');
+                this.log && this.log('Committing transaction and releasing connection back to the pool');
                 return this.execute(COMMIT_TRANSACTION)
                     .then(() => { 
                         this.releaseConnection();
-                        log && log(`Transaction committed in ${since(start)} ms; pool state: ${this.database.getPoolDescription()}`);
+                        this.log && this.log(`Transaction committed in ${since(start)} ms; pool state: ${this.database.getPoolDescription()}`);
                     });
             case 'rollback':
-                log && log('Rolling back transaction and releasing connection back to the pool');
+                this.log && this.log('Rolling back transaction and releasing connection back to the pool');
                 return this.rollbackAndRelease()
                     .then((result) => {
-                        log && log(`Transaction rolled back in ${since(start)} ms; pool state: ${this.database.getPoolDescription()}`);
+                        this.log && this.log(`Transaction rolled back in ${since(start)} ms; pool state: ${this.database.getPoolDescription()}`);
                         return result;
                     });
             default:
-                log && log('Releasing connection back to the pool');
+                this.log && this.log('Releasing connection back to the pool');
                 if (this.inTransaction) {
                     return this.rollbackAndRelease(
                         new TransactionError('Uncommitted transaction detected during connection release'));
                 }
                 else {
                     this.releaseConnection();
-                    log && log(`Connection released in ${since(start)} ms; pool state: ${this.database.getPoolDescription()}`);
+                    this.log && this.log(`Connection released in ${since(start)} ms; pool state: ${this.database.getPoolDescription()}`);
                     return Promise.resolve();
                 }
         }
@@ -132,7 +134,7 @@ export class Connection {
 
         var start = process.hrtime();
         var { queries, state } = this.buildQueryList(queryOrQueries);
-        log && log(`Executing ${queries.length} queries: [${buildQueryNameList(queries).join(', ')}];`);
+        this.log && this.log(`Executing ${queries.length} queries: [${buildQueryNameList(queries).join(', ')}];`);
         
         return Promise.resolve()
             .then(() => this.buildDbQueries(queries))
@@ -140,7 +142,7 @@ export class Connection {
             .then((queryResults) => Promise.all(queryResults))
             .then((results) => {
                 try {
-                    log && log(`Queries executed in ${since(start)} ms; processing results`);
+                    this.log && this.log(`Queries executed in ${since(start)} ms; processing results`);
                     start = process.hrtime();
                     
                     var flatResults = results.reduce((agg: any[], result) => agg.concat(result), []);
@@ -152,7 +154,7 @@ export class Connection {
                         collector.addResult(query, this.processQueryResult(query, flatResults[i]));
                     });
                     this.state = state;
-                    log && log(`Query results processed in ${since(start)} ms`)
+                    this.log && this.log(`Query results processed in ${since(start)} ms`)
                     return collector.getResults();
                 }
                 catch (error) {

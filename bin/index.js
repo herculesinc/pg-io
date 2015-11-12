@@ -10,9 +10,10 @@ var util_1 = require('./lib/util');
 // GLOBALS
 // ================================================================================================
 var databases = new Map();
-// export connection contructor to enable overriding
-exports.constructors = {
-    connection: Connection_1.Connection
+// export library configurations
+exports.config = {
+    connectionConstructor: Connection_1.Connection,
+    logger: undefined
 };
 // export defaults to enable overriding
 exports.defaults = {
@@ -43,13 +44,14 @@ class Database {
     connect(options) {
         options = Object.assign({}, exports.defaults, options);
         var start = process.hrtime();
-        exports.logger && exports.logger(`Connecting to the database; pool state ${ this.getPoolDescription() }`);
+        var logger = exports.config.logger;
+        logger && logger.log(`Connecting to the database; pool state ${ this.getPoolDescription() }`);
         return new Promise((resolve, reject) => {
             pg.connect(this.settings, (error, client, done) => {
                 if (error) return reject(new errors_1.ConnectionError(error));
-                var connection = new exports.constructors.connection(this, options);
+                var connection = new exports.config.connectionConstructor(this, options);
                 connection.inject(client, done);
-                exports.logger && exports.logger(`Connected in ${ util_1.since(start) } ms; pool state: ${ this.getPoolDescription() }`);
+                logger && logger.log(`Connected in ${ util_1.since(start) } ms; pool state: ${ this.getPoolDescription() }`);
                 resolve(connection);
             });
         });

@@ -11,8 +11,11 @@ declare module "pg-io" {
         poolSize?   : number;
     }
     
-    export interface Logger {
-        (message: string): void;
+    export interface Configuration {
+        connectionConstructor: typeof Connection;
+        logger: {
+            log(message: string);
+        };
     }
     
     export interface Utilities {
@@ -21,8 +24,7 @@ declare module "pg-io" {
 
     export function db(settings: ConnectionSettings): Database;
     export var defaults: ConnectionOptions;
-    export var constructors: { connection: typeof Connection; };
-    export var logger: Logger;
+    export var config: Configuration;
     export var utils: Utilities;
 
     // DATABASE

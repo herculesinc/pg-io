@@ -13,8 +13,9 @@ class Connection {
     constructor(database, options) {
         this.database = database;
         this.options = options;
+        this.log = index_1.config.logger ? index_1.config.logger.log : undefined;
         if (options.startTransaction) {
-            index_1.logger && index_1.logger(`Starting database transaction in lazy mode`);
+            this.log && this.log(`Starting database transaction in lazy mode`);
             this.state = 3;
         } else /* transactionPending */{
                 this.state = 1;
@@ -39,7 +40,7 @@ class Connection {
 
         if (this.isActive === false) return Promise.reject(new errors_1.ConnectionError('Cannot start transaction: connection is not currently active'));
         if (this.inTransaction) return Promise.reject(new errors_1.TransactionError('Cannot start transaction: connection is already in transaction'));
-        index_1.logger && index_1.logger(`Starting database transaction in ${ lazy ? 'lazy' : 'eager' } mode`);
+        this.log && this.log(`Starting database transaction in ${ lazy ? 'lazy' : 'eager' } mode`);
         if (lazy) {
             this.state = 3;
             /* transactionPending */return Promise.resolve();
@@ -54,24 +55,24 @@ class Connection {
         var start = process.hrtime();
         switch (action) {
             case 'commit':
-                index_1.logger && index_1.logger('Committing transaction and releasing connection back to the pool');
+                this.log && this.log('Committing transaction and releasing connection back to the pool');
                 return this.execute(COMMIT_TRANSACTION).then(() => {
                     this.releaseConnection();
-                    index_1.logger && index_1.logger(`Transaction committed in ${ util_1.since(start) } ms; pool state: ${ this.database.getPoolDescription() }`);
+                    this.log && this.log(`Transaction committed in ${ util_1.since(start) } ms; pool state: ${ this.database.getPoolDescription() }`);
                 });
             case 'rollback':
-                index_1.logger && index_1.logger('Rolling back transaction and releasing connection back to the pool');
+                this.log && this.log('Rolling back transaction and releasing connection back to the pool');
                 return this.rollbackAndRelease().then(result => {
-                    index_1.logger && index_1.logger(`Transaction rolled back in ${ util_1.since(start) } ms; pool state: ${ this.database.getPoolDescription() }`);
+                    this.log && this.log(`Transaction rolled back in ${ util_1.since(start) } ms; pool state: ${ this.database.getPoolDescription() }`);
                     return result;
                 });
             default:
-                index_1.logger && index_1.logger('Releasing connection back to the pool');
+                this.log && this.log('Releasing connection back to the pool');
                 if (this.inTransaction) {
                     return this.rollbackAndRelease(new errors_1.TransactionError('Uncommitted transaction detected during connection release'));
                 } else {
                     this.releaseConnection();
-                    index_1.logger && index_1.logger(`Connection released in ${ util_1.since(start) } ms; pool state: ${ this.database.getPoolDescription() }`);
+                    this.log && this.log(`Connection released in ${ util_1.since(start) } ms; pool state: ${ this.database.getPoolDescription() }`);
                     return Promise.resolve();
                 }
         }
@@ -85,10 +86,10 @@ class Connection {
         var queries = _buildQueryList.queries;
         var state = _buildQueryList.state;
 
-        index_1.logger && index_1.logger(`Executing ${ queries.length } queries: [${ buildQueryNameList(queries).join(', ') }];`);
+        this.log && this.log(`Executing ${ queries.length } queries: [${ buildQueryNameList(queries).join(', ') }];`);
         return Promise.resolve().then(() => this.buildDbQueries(queries)).then(dbQueries => dbQueries.map(query => this.executeQuery(query))).then(queryResults => Promise.all(queryResults)).then(results => {
             try {
-                index_1.logger && index_1.logger(`Queries executed in ${ util_1.since(start) } ms; processing results`);
+                this.log && this.log(`Queries executed in ${ util_1.since(start) } ms; processing results`);
                 start = process.hrtime();
                 var flatResults = results.reduce((agg, result) => agg.concat(result), []);
                 if (queries.length !== flatResults.length) throw new errors_1.ParseError(`Cannot parse query results: expected (${ queries.length }) results but recieved (${ results.length })`);
@@ -97,7 +98,7 @@ class Connection {
                     collector.addResult(query, this.processQueryResult(query, flatResults[i]));
                 });
                 this.state = state;
-                index_1.logger && index_1.logger(`Query results processed in ${ util_1.since(start) } ms`);
+                this.log && this.log(`Query results processed in ${ util_1.since(start) } ms`);
                 return collector.getResults();
             } catch (error) {
                 if (error instanceof errors_1.PgError === false) error = new errors_1.ParseError(error);

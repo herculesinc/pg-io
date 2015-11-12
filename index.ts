@@ -21,8 +21,13 @@ export interface PoolState {
     available   : number;
 }
 
+export interface Configuration {
+    connectionConstructor: typeof Connection,
+    logger: Logger
+}
+
 export interface Logger {
-    (message: string): void;
+    log(message: string): void;
 }
 
 export interface Utilities {
@@ -33,9 +38,10 @@ export interface Utilities {
 // ================================================================================================
 var databases = new Map<string, Database>();
 
-// export connection contructor to enable overriding
-export var constructors = {
-    connection: Connection
+// export library configurations
+export var config: Configuration = {
+    connectionConstructor: Connection,
+    logger: undefined
 };
 
 // export defaults to enable overriding
@@ -43,9 +49,6 @@ export var defaults: Options = {
     collapseQueries : false,
     startTransaction: false
 };
-
-// logger placeholder
-export var logger: Logger;
 
 // exported utils
 export var utils: Utilities = {
@@ -76,13 +79,14 @@ export class Database {
         options = Object.assign({}, defaults, options);
         
         var start = process.hrtime();
-        logger && logger(`Connecting to the database; pool state ${this.getPoolDescription()}`)
+        var logger = config.logger;
+        logger && logger.log(`Connecting to the database; pool state ${this.getPoolDescription()}`)
         return new Promise((resolve, reject) => {
             pg.connect(this.settings, (error, client, done) => {
                 if (error) return reject(new ConnectionError(error));
-                var connection = new constructors.connection(this, options);
+                var connection = new config.connectionConstructor(this, options);
                 connection.inject(client, done)
-                logger && logger(`Connected in ${since(start)} ms; pool state: ${this.getPoolDescription()}`);
+                logger && logger.log(`Connected in ${since(start)} ms; pool state: ${this.getPoolDescription()}`);
                 resolve(connection);
             });
         });
