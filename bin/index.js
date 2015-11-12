@@ -19,10 +19,11 @@ exports.defaults = {
     collapseQueries: false,
     startTransaction: false
 };
-// noop logger - can be replaced with real logger
-exports.logger = {
-    log: message => {}
+// exported utils
+exports.utils = {
+    since: util_1.since
 };
+// database getter
 function db(settings) {
     var db = databases.get(JSON.stringify(settings));
     if (db === undefined) {
@@ -42,12 +43,13 @@ class Database {
     connect(options) {
         options = Object.assign({}, exports.defaults, options);
         var start = process.hrtime();
-        exports.logger.log('Connecting to the database');
+        exports.logger && exports.logger(`Connecting to the database; pool state ${ this.getPoolDescription() }`);
         return new Promise((resolve, reject) => {
             pg.connect(this.settings, (error, client, done) => {
                 if (error) return reject(new errors_1.ConnectionError(error));
-                var connection = new exports.constructors.connection(options, client, done);
-                exports.logger.log(`Connected in ${ util_1.since(start) } ms; pool state: ${ this.getPoolDescription() }`);
+                var connection = new exports.constructors.connection(this, options);
+                connection.inject(client, done);
+                exports.logger && exports.logger(`Connected in ${ util_1.since(start) } ms; pool state: ${ this.getPoolDescription() }`);
                 resolve(connection);
             });
         });
@@ -64,6 +66,7 @@ class Database {
         return `{size: ${ pool.getPoolSize() }, available: ${ pool.availableObjectsCount() }}`;
     }
 }
+exports.Database = Database;
 // RE-EXPORTS
 // ================================================================================================
 var Connection_2 = require('./lib/Connection');

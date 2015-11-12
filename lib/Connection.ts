@@ -3,10 +3,11 @@
 import * as assert from 'assert';
 import * as pg from 'pg';
 
-import { logger } from './../index';
+import { Database, logger as log } from './../index';
 import { Query, ResultQuery, isResultQuery, isParametrized, toDbQuery, DbQuery } from './Query';
 import { Collector } from './Collector';
 import { PgError, ConnectionError, TransactionError, QueryError, ParseError } from './errors'
+import { since } from './util';
 
 // INTERFACES AND ENUMS
 // ================================================================================================
@@ -28,21 +29,27 @@ export class Connection {
 
     protected state     : State;
     protected options   : Options;
+    protected database  : Database;
     private client      : pg.Client;
     private done        : (error?: Error) => void;
 
-    // CONSTRUCTOR
+    // CONSTRUCTOR AND INJECTOR
     // --------------------------------------------------------------------------------------------
-    constructor(options: Options, client: pg.Client, done: (error?: Error) => void) {
+    constructor(database: Database, options: Options) {
+        this.database = database;
         this.options = options;
-        this.client = client;
-        this.done = done;
         if (options.startTransaction) {
+            log && log(`Starting database transaction in lazy mode`)
             this.state = State.transactionPending;
         }
         else{
             this.state = State.connection;
         }
+    }
+    
+    inject(client: pg.Client, done: (error?: Error) => void) {
+        this.client = client;
+        this.done = done;
     }
 
     // PUBLIC ACCESSORS
@@ -66,6 +73,7 @@ export class Connection {
             return Promise.reject(
                 new TransactionError('Cannot start transaction: connection is already in transaction'));
         
+        log && log(`Starting database transaction in ${lazy ? 'lazy' : 'eager'} mode`)
         if (lazy) {
             this.state = State.transactionPending;
             return Promise.resolve();
@@ -82,19 +90,31 @@ export class Connection {
             return Promise.reject(
                 new ConnectionError('Cannot release connection: connection has already been released'));
         
+        var start = process.hrtime();
         switch (action) {
             case 'commit':
+                log && log('Committing transaction and releasing connection back to the pool');
                 return this.execute(COMMIT_TRANSACTION)
-                    .then(() => this.releaseConnection());
+                    .then(() => { 
+                        this.releaseConnection();
+                        log && log(`Transaction committed in ${since(start)} ms; pool state: ${this.database.getPoolDescription()}`);
+                    });
             case 'rollback':
-                return this.rollbackAndRelease();
+                log && log('Rolling back transaction and releasing connection back to the pool');
+                return this.rollbackAndRelease()
+                    .then((result) => {
+                        log && log(`Transaction rolled back in ${since(start)} ms; pool state: ${this.database.getPoolDescription()}`);
+                        return result;
+                    });
             default:
+                log && log('Releasing connection back to the pool');
                 if (this.inTransaction) {
                     return this.rollbackAndRelease(
                         new TransactionError('Uncommitted transaction detected during connection release'));
                 }
                 else {
                     this.releaseConnection();
+                    log && log(`Connection released in ${since(start)} ms; pool state: ${this.database.getPoolDescription()}`);
                     return Promise.resolve();
                 }
         }
@@ -110,7 +130,9 @@ export class Connection {
             return Promise.reject(
                 new ConnectionError('Cannot execute queries: connection has been released'));
 
+        var start = process.hrtime();
         var { queries, state } = this.buildQueryList(queryOrQueries);
+        log && log(`Executing ${queries.length} queries: [${buildQueryNameList(queries).join(', ')}];`);
         
         return Promise.resolve()
             .then(() => this.buildDbQueries(queries))
@@ -118,6 +140,9 @@ export class Connection {
             .then((queryResults) => Promise.all(queryResults))
             .then((results) => {
                 try {
+                    log && log(`Queries executed in ${since(start)} ms; processing results`);
+                    start = process.hrtime();
+                    
                     var flatResults = results.reduce((agg: any[], result) => agg.concat(result), []);
                     if (queries.length !== flatResults.length)
                         throw new ParseError(`Cannot parse query results: expected (${queries.length}) results but recieved (${results.length})`);
@@ -127,6 +152,7 @@ export class Connection {
                         collector.addResult(query, this.processQueryResult(query, flatResults[i]));
                     });
                     this.state = state;
+                    log && log(`Query results processed in ${since(start)} ms`)
                     return collector.getResults();
                 }
                 catch (error) {
@@ -236,13 +262,24 @@ export class Connection {
 // COMMON QUERIES
 // ================================================================================================
 var BEGIN_TRANSACTION: Query = {
+    name: 'qBeginTransaction',
     text: 'BEGIN;'
 };
 
 var COMMIT_TRANSACTION: Query = {
+    name: 'qCommitTransaction',
     text: 'COMMIT;'
 };
 
 var ROLLBACK_TRANSACTION: Query = {
+    name: 'qRollbackTransaction',
     text: 'ROLLBACK;'
 };
+
+// HELPER FUNCTIONS
+// ================================================================================================
+function buildQueryNameList(queryList: Query[]): string[] {
+    return queryList.map((query) => {
+       return query.name ? query.name : 'unnamed'; 
+    });
+}

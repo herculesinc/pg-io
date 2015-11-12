@@ -12,13 +12,18 @@ declare module "pg-io" {
     }
     
     export interface Logger {
-        log(message: string): void;
+        (message: string): void;
+    }
+    
+    export interface Utilities {
+        since(start: number[]): number;
     }
 
     export function db(settings: ConnectionSettings): Database;
     export var defaults: ConnectionOptions;
     export var constructors: { connection: typeof Connection; };
     export var logger: Logger;
+    export var utils: Utilities;
 
     // DATABASE
     // --------------------------------------------------------------------------------------------
@@ -53,10 +58,11 @@ declare module "pg-io" {
         execute(query: Query)               : Promise<void>;
         execute(queries: Query[])           : Promise<Map<string,any>>;
         
-        constructor(options: ConnectionOptions, client: any, done: (error?: Error) => void);
+        constructor(database: Database, options: ConnectionOptions);
         
         protected state: ConnectionState;
         protected options: ConnectionOptions;
+        protected database: Database;
         protected processQueryResult(query: Query, result: DbQueryResult): any[];
         protected rollbackAndRelease(reason?: any): Promise<any>;
         protected releaseConnection(error?: any);

@@ -2,7 +2,7 @@
 
 function since(start) {
     var diff = process.hrtime(start);
-    return diff[0] * 1000 + diff[1] / 1000000;
+    return Math.floor(diff[0] * 10000 + diff[1] / 100000) / 10;
 }
 exports.since = since;
 //# sourceMappingURL=../../bin/lib/util.js.map

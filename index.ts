@@ -22,7 +22,11 @@ export interface PoolState {
 }
 
 export interface Logger {
-    log(message: string): void;
+    (message: string): void;
+}
+
+export interface Utilities {
+    since(start: number[]): number;
 }
 
 // GLOBALS
@@ -40,11 +44,15 @@ export var defaults: Options = {
     startTransaction: false
 };
 
-// noop logger - can be replaced with real logger
-export var logger: Logger = {
-    log: (message: string) => {}    
-};
+// logger placeholder
+export var logger: Logger;
 
+// exported utils
+export var utils: Utilities = {
+    since: since
+}
+
+// database getter
 export function db(settings: Settings): Database {
     var db = databases.get(JSON.stringify(settings));
     if (db === undefined) {
@@ -56,7 +64,7 @@ export function db(settings: Settings): Database {
 
 // DATABASE CLASS
 // ================================================================================================
-class Database {
+export class Database {
 
     settings: Settings;
     
@@ -68,12 +76,13 @@ class Database {
         options = Object.assign({}, defaults, options);
         
         var start = process.hrtime();
-        logger.log('Connecting to the database')
+        logger && logger(`Connecting to the database; pool state ${this.getPoolDescription()}`)
         return new Promise((resolve, reject) => {
             pg.connect(this.settings, (error, client, done) => {
                 if (error) return reject(new ConnectionError(error));
-                var connection = new constructors.connection(options, client, done);
-                logger.log(`Connected in ${since(start)} ms; pool state: ${this.getPoolDescription()}`);
+                var connection = new constructors.connection(this, options);
+                connection.inject(client, done)
+                logger && logger(`Connected in ${since(start)} ms; pool state: ${this.getPoolDescription()}`);
                 resolve(connection);
             });
         });
