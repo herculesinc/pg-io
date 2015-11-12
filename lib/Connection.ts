@@ -30,9 +30,9 @@ export class Connection {
     protected state     : State;
     protected options   : Options;
     protected database  : Database;
+    protected log       : (message: string) => void;
     private client      : pg.Client;
     private done        : (error?: Error) => void;
-    private log         : (message: string) => void;
 
     // CONSTRUCTOR AND INJECTOR
     // --------------------------------------------------------------------------------------------

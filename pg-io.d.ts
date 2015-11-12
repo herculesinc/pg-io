@@ -68,6 +68,7 @@ declare module "pg-io" {
         protected processQueryResult(query: Query, result: DbQueryResult): any[];
         protected rollbackAndRelease(reason?: any): Promise<any>;
         protected releaseConnection(error?: any);
+        protected log(message: string);
     }
 
     // RESULT HANDLER
