@@ -134,7 +134,7 @@ export class Connection {
 
         var start = process.hrtime();
         var { queries, state } = this.buildQueryList(queryOrQueries);
-        this.log && this.log(`Executing ${queries.length} queries: [${buildQueryNameList(queries).join(', ')}];`);
+        this.log && this.log(`Executing ${queries.length} queries: [${buildQueryNameList(queries).join(', ')}]`);
         
         return Promise.resolve()
             .then(() => this.buildDbQueries(queries))

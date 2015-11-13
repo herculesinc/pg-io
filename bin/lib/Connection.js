@@ -86,7 +86,7 @@ class Connection {
         var queries = _buildQueryList.queries;
         var state = _buildQueryList.state;
 
-        this.log && this.log(`Executing ${ queries.length } queries: [${ buildQueryNameList(queries).join(', ') }];`);
+        this.log && this.log(`Executing ${ queries.length } queries: [${ buildQueryNameList(queries).join(', ') }]`);
         return Promise.resolve().then(() => this.buildDbQueries(queries)).then(dbQueries => dbQueries.map(query => this.executeQuery(query))).then(queryResults => Promise.all(queryResults)).then(results => {
             try {
                 this.log && this.log(`Queries executed in ${ util_1.since(start) } ms; processing results`);
