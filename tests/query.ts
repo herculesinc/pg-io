@@ -55,7 +55,7 @@ describe('Query parameterization tests', function() {
 	
 	it('Number array parameters should be inlined', () => {
 		var query: Query = {
-			text: 'SELECT * FROM users WHERE id IN ({{ids}});',
+			text: 'SELECT * FROM users WHERE id IN ([[ids]]);',
 			params: {
 				ids: [1, 2]
 			}
@@ -66,9 +66,23 @@ describe('Query parameterization tests', function() {
 		assert.strictEqual(dbQuery.values, undefined);
     });
 	
+	it('Parametrizing arrays as objects should work correctly', () => {
+		var query: Query = {
+			text: 'UPDATE users SET tags={{tags}} WHERE id={{id}};',
+			params: {
+				id: 1,
+				tags: ['test', 'testing']
+			}
+		};
+		
+		var dbQuery = toDbQuery(query);
+		assert.equal(dbQuery.text, `UPDATE users SET tags='["test","testing"]' WHERE id=1;\n`);
+		assert.strictEqual(dbQuery.values, undefined);
+    });
+	
 	it('Safe string array parameters should be inlined', () => {
 		var query: Query = {
-			text: 'SELECT * FROM users WHERE type IN ({{types}});',
+			text: 'SELECT * FROM users WHERE type IN ([[types]]);',
 			params: {
 				types: ['personal', 'business']
 			}
@@ -81,7 +95,7 @@ describe('Query parameterization tests', function() {
 	
 	it('Unsafe string array parameters should be converted to parametrized queries', () => {
 		var query: Query = {
-			text: 'SELECT * FROM users WHERE firstName IN ({{names}});',
+			text: 'SELECT * FROM users WHERE firstName IN ([[names]]);',
 			params: {
 				names: [
 					'Irakliy',
@@ -190,7 +204,7 @@ describe('Query parameterization tests', function() {
 	it('Parameterization with arrays of mixed type should throw an error', () => {
 		var activationDate = new Date();
 		var query: Query = {
-			text: 'SELECT * FROM users WHERE activated_on = {{activatedOn}};',
+			text: 'SELECT * FROM users WHERE activated_on = [[activatedOn]];',
 			params: {
 				activatedOn: [ 1, 'test' ]
 			}
@@ -204,11 +218,27 @@ describe('Query parameterization tests', function() {
 	it('Parameterization with arrays of objects should throw an error', () => {
 		var activationDate = new Date();
 		var query: Query = {
-			text: 'SELECT * FROM users WHERE activated_on = {{activatedOn}};',
+			text: 'SELECT * FROM users WHERE activated_on = [[activatedOn]];',
 			params: {
 				activatedOn: [ {
 					test: 'test'
 				} ]
+			}
+		};
+		
+		assert.throws(() => {
+			var dbQuery = toDbQuery(query);	
+		}, QueryError);
+    });
+	
+	it('Parameterization of objects as arrays should throw an error', () => {
+		var activationDate = new Date();
+		var query: Query = {
+			text: 'SELECT * FROM users WHERE activated_on = [[activatedOn]];',
+			params: {
+				activatedOn: {
+					test: 'test'
+				}
 			}
 		};
 		

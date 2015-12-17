@@ -6,6 +6,7 @@ var errors_1 = require('./errors');
 // MODULE VARIABLES
 // ================================================================================================
 var paramPattern = /{{([a-z0-9\$_]+)}}/gi;
+var arrayParamPatter = /\[\[([a-z0-9\$_]+)\]\]/gi;
 // PUBLIC FUNCTIONS
 // ================================================================================================
 function isResultQuery(query) {
@@ -29,11 +30,12 @@ function toDbQuery(query) {
         var params = [];
         var text = query.text.replace(paramPattern, function (match, paramName) {
             var param = query.params[paramName];
-            if (param && Array.isArray(param)) {
-                return stringifyArrayParam(param, params);
-            } else {
-                return stringifySingleParam(param, params);
-            }
+            return stringifySingleParam(param, params);
+        });
+        text = text.replace(arrayParamPatter, function (match, paramName) {
+            var param = query.params[paramName];
+            if (param && !Array.isArray(param)) throw new errors_1.QueryError('Invalid query: non-array supplied for array parameter');
+            return stringifyArrayParam(param, params);
         });
         return {
             text: formatQueryText(text),
@@ -59,8 +61,6 @@ function stringifySingleParam(value, params) {
         default:
             if (value instanceof Date) {
                 return `'${ value.toISOString() }'`;
-            } else if (value instanceof Array) {
-                throw new errors_1.QueryError('Somehting went wrong with preparing array parameters');
             } else {
                 var paramValue = value.valueOf();
                 if (typeof paramValue === 'object') {

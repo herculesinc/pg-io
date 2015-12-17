@@ -28,6 +28,7 @@ export interface DbQuery {
 // MODULE VARIABLES
 // ================================================================================================
 var paramPattern = /{{([a-z0-9\$_]+)}}/gi;
+var arrayParamPatter = /\[\[([a-z0-9\$_]+)\]\]/gi;
 
 // PUBLIC FUNCTIONS
 // ================================================================================================
@@ -56,12 +57,14 @@ export function toDbQuery(query: Query): DbQuery {
         var params = [];
         var text = query.text.replace(paramPattern, function (match, paramName) {
             var param = query.params[paramName];
-            if (param && Array.isArray(param)) {
-                return stringifyArrayParam(param, params);
-            }
-            else {
-                return stringifySingleParam(param, params);
-            }
+            return stringifySingleParam(param, params);
+        });
+        
+        text = text.replace(arrayParamPatter, function(match, paramName) {
+            var param = query.params[paramName];
+            if (param && !Array.isArray(param))
+                throw new QueryError('Invalid query: non-array supplied for array parameter');
+            return stringifyArrayParam(param, params);
         });
         
         return {
@@ -89,9 +92,6 @@ function stringifySingleParam(value: any, params: any[]): string {
         default:
             if (value instanceof Date) {
                 return `'${value.toISOString()}'`;
-            }
-            else if (value instanceof Array) {
-                throw new QueryError('Somehting went wrong with preparing array parameters');
             }
             else {
                 var paramValue = value.valueOf();

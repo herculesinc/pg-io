@@ -31,6 +31,8 @@ describe('Object query tests', function() {
                 return dao.execute(query).then((user) => {
                     assert.strictEqual(user.id, 1);
                     assert.strictEqual(user.username, 'Irakliy');
+                    assert.strictEqual(user.tags[0], 'test');
+                    assert.strictEqual(user.tags[1], 'testing');
                 });
             }).then(() => dao.release());
         });
