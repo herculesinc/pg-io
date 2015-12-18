@@ -296,15 +296,16 @@ connection.execute(query).then(() => {
 
 Safe parameters (e.g. booleans, numbers, safe strings) are inlined into the query text before the query is sent to the database. If one of the parameters is an unsafe string, the query is executed as a parametrized query on the database to avoid possibility of SQL-injection. In general, properties in the `params` object are treated as follows:
 
-  * boolean - always inlined
-  * number - always inlined
-  * Date - converted to ISO string and always inlined
-  * string - if the string is safe, it is inlined, otherwise the query is executed as a parametrized query
-  * object - object parameters are treated as follows:
+  * __boolean__ - always inlined
+  * __number__ - always inlined
+  * __Date__ - converted to ISO string and always inlined
+  * __string__ - if the string is safe, it is inlined, otherwise the query is executed as a parametrized query
+  * __object__ - object parameters are treated as follows:
     - `valueOf()` method is called on the object and if it returns a number, a boolean, a safe string, or a date, the value is inlined; if the returned value is an unsafe string, the query is executed as parametrized query
     - if `valueOf()` method returns an object, the parameter is converted to string using `JSON.stringify()` and if the resulting string is safe, inlined; otherwise the query is executed as parametrized query
-  * arrays - arrays are parametrized same as objects
-  * functions - not supported, will throw QueryError
+  * __arrays__ - arrays are parametrized same as objects
+  * __null__ or __undefined__ - always inlined as 'null'
+  * __functions__ - not supported, will throw QueryError
 
 It is also possible to parametrize arrays of primitives in a special way to make them useful for `IN` clauses. This can be done by using `[[]]` brackets. In this case, the parameterization logic is as follows:
 
