@@ -1,7 +1,6 @@
+"use strict";
 // IMPORTS
 // ================================================================================================
-'use strict';
-
 var pg = require('pg');
 var errors_1 = require('./lib/errors');
 var Connection_1 = require('./lib/Connection');

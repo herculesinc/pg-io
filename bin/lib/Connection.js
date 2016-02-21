@@ -1,5 +1,4 @@
-'use strict';
-
+"use strict";
 var index_1 = require('./../index');
 var Query_1 = require('./Query');
 var Collector_1 = require('./Collector');
@@ -159,7 +158,7 @@ class Connection {
             queries.unshift(BEGIN_TRANSACTION);
             state = 2;
         }
-        /* transaction */return { queries, state };
+        /* transaction */return { queries: queries, state: state };
     }
     buildDbQueries(queries) {
         var dbQueries = [];

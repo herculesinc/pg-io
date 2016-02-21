@@ -1,5 +1,4 @@
-'use strict';
-
+"use strict";
 class PgError extends Error {
     constructor(messageOrCause, cause) {
         if (typeof messageOrCause === 'string') {

@@ -1,7 +1,6 @@
+"use strict";
 // IMPORTS
 // ================================================================================================
-'use strict';
-
 var errors_1 = require('./errors');
 // MODULE VARIABLES
 // ================================================================================================
@@ -57,7 +56,11 @@ function stringifySingleParam(value, params) {
         case 'string':
             return isSafeString(value) ? `'${ value }'` : '$' + params.push(value);
         case 'function':
-            throw new errors_1.QueryError('Query parameter cannot be a function');
+            var paramValue = value.valueOf();
+            if (typeof paramValue === 'function') {
+                throw new errors_1.QueryError('Query parameter cannot be a function');
+            }
+            return stringifySingleParam(paramValue, params);
         default:
             if (value instanceof Date) {
                 return `'${ value.toISOString() }'`;

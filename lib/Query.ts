@@ -88,7 +88,11 @@ function stringifySingleParam(value: any, params: any[]): string {
         case 'string':
             return isSafeString(value) ? `'${value}'` : '$' + params.push(value);
         case 'function':
-            throw new QueryError('Query parameter cannot be a function');
+            var paramValue = value.valueOf();
+            if (typeof paramValue === 'function') {
+                throw new QueryError('Query parameter cannot be a function');
+            }
+            return stringifySingleParam(paramValue, params);
         default:
             if (value instanceof Date) {
                 return `'${value.toISOString()}'`;
