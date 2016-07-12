@@ -2,10 +2,22 @@
 // ================================================================================================
 import { QueryError } from './errors';
 
+// MODULE VARIABLES
+// ================================================================================================
+const paramPattern = /{{([a-z0-9\$_]+)}}/gi;
+const arrayParamPatter = /\[\[([a-z0-9\$_]+)\]\]/gi;
+
 // INTERFACES
 // ================================================================================================
+export type QueryMask = 'list' | 'object';
+
 export interface ResultHandler<T> {
     parse(row: any): T;
+}
+
+export interface QuerySpec {
+    text    : string;
+    name?   : string;
 }
 
 export interface Query {
@@ -15,8 +27,16 @@ export interface Query {
 }
 
 export interface ResultQuery<T> extends Query {
-    mask    : string;
+    mask    : QueryMask;
     handler?: ResultHandler<T>;
+}
+
+export interface OneResultQuery<T> extends ResultQuery<T> {
+    mask    : 'object';
+}
+
+export interface ListResultQuery<T> extends ResultQuery<T> {
+    mask    : 'list';
 }
 
 export interface DbQuery {
@@ -25,15 +45,23 @@ export interface DbQuery {
     multiResult?: boolean;
 }
 
-// MODULE VARIABLES
-// ================================================================================================
-var paramPattern = /{{([a-z0-9\$_]+)}}/gi;
-var arrayParamPatter = /\[\[([a-z0-9\$_]+)\]\]/gi;
-
 // PUBLIC FUNCTIONS
 // ================================================================================================
+export function Query(spec: QuerySpec, params?: any): Query
+export function Query<T>(spec: QuerySpec, params?: any, mask?: QueryMask): ResultQuery<T>
+export function Query(spec: QuerySpec, params?: any, mask?: QueryMask): Query | ResultQuery<any> {
+    if (!spec) return undefined;
+    
+    return {
+        name    : spec.name,
+        text    : spec.text,
+        params  : params,
+        mask    : mask
+    };
+}
+
 export function isResultQuery(query: Query): query is ResultQuery<any> {
-    var queryMask = query['mask'];
+    const queryMask = query['mask'];
     if (queryMask === 'object' || queryMask === 'list') {
         return true;
     }
@@ -54,26 +82,28 @@ export function toDbQuery(query: Query): DbQuery {
         throw new QueryError('Invalid query: query text cannot be empty');
     
     if (query.params) {
-        var params = [];
-        var text = query.text.replace(paramPattern, function (match, paramName) {
-            var param = query.params[paramName];
+        const params = [];
+        let text = query.text.replace(paramPattern, function (match, paramName) {
+            const param = query.params[paramName];
             return stringifySingleParam(param, params);
         });
         
         text = text.replace(arrayParamPatter, function(match, paramName) {
-            var param = query.params[paramName];
+            const param = query.params[paramName];
             if (param && !Array.isArray(param))
                 throw new QueryError('Invalid query: non-array supplied for array parameter');
             return stringifyArrayParam(param, params);
         });
         
         return {
-            text: formatQueryText(text),
-            values: params.length > 0 ? params : undefined,
+            text    : formatQueryText(text),
+            values  : params.length > 0 ? params : undefined,
         };
     }
     else {
-        return { text: formatQueryText(query.text) };
+        return {
+            text    : formatQueryText(query.text)
+        };
     }
 }
 
@@ -88,7 +118,7 @@ function stringifySingleParam(value: any, params: any[]): string {
         case 'string':
             return isSafeString(value) ? `'${value}'` : '$' + params.push(value);
         case 'function':
-            var paramValue = value.valueOf();
+            let paramValue = value.valueOf();
             if (typeof paramValue === 'function') {
                 throw new QueryError('Query parameter cannot be a function');
             }
@@ -98,7 +128,7 @@ function stringifySingleParam(value: any, params: any[]): string {
                 return `'${value.toISOString()}'`;
             }
             else {
-                var paramValue = value.valueOf();
+                let paramValue = value.valueOf();
                 if (typeof paramValue === 'object') {
                     paramValue = JSON.stringify(value);
                 }
@@ -110,13 +140,12 @@ function stringifySingleParam(value: any, params: any[]): string {
 function stringifyArrayParam(values: any[], params: any[]): string {
     if (values == undefined || values.length === 0) return 'null';
     
-    var paramValues: string[] = [];
-    var arrayType = typeof values[0];
-    for (var i = 0; i < values.length; i++) {
-        var value = values[i];
+    const paramValues: string[] = [];
+    const arrayType = typeof values[0];
+    for (let value of values) {
         if (value == undefined) continue;
         
-        var valueType = typeof value;
+        let valueType = typeof value;
         if (valueType !== arrayType)
             throw new QueryError('Query parameter cannot be an array of mixed values');
         
@@ -140,7 +169,7 @@ function stringifyArrayParam(values: any[], params: any[]): string {
 }
 
 function isSafeString(value: string): boolean {
-    return  (value.indexOf('\'') === -1 && value.indexOf(`\\`) === -1);
+    return (!value.includes('\'') && !value.includes(`\\`));
 }
 
 function formatQueryText(text: string): string {

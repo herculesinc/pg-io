@@ -1,7 +1,7 @@
 ﻿// IMPORTS
 // ================================================================================================
 import { Connection } from './../lib/Connection';
-import { Query, ResultQuery } from './../lib/Query';
+import { Query, ResultQuery, QueryMask } from './../lib/Query';
 
 // INTERFACES
 // ================================================================================================
@@ -46,7 +46,7 @@ class qUpdateUser extends AbstractQuery {
 
 export class qFetchUserById implements ResultQuery<User> {
     text: string;
-    mask = 'object';
+    mask: 'object' = 'object';
 
     constructor(userId: number) {
         this.text = `
@@ -59,7 +59,7 @@ export class qFetchUserById implements ResultQuery<User> {
 
 export class qFetchUsersByIdList implements ResultQuery<User> {
     text: string;
-    mask = 'list';
+    mask: 'list' = 'list';
 
     constructor(userIdList: number[]) {
         this.text = `

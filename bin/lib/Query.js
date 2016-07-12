@@ -4,12 +4,21 @@
 const errors_1 = require('./errors');
 // MODULE VARIABLES
 // ================================================================================================
-var paramPattern = /{{([a-z0-9\$_]+)}}/gi;
-var arrayParamPatter = /\[\[([a-z0-9\$_]+)\]\]/gi;
-// PUBLIC FUNCTIONS
-// ================================================================================================
+const paramPattern = /{{([a-z0-9\$_]+)}}/gi;
+const arrayParamPatter = /\[\[([a-z0-9\$_]+)\]\]/gi;
+function Query(spec, params, mask) {
+    if (!spec)
+        return undefined;
+    return {
+        name: spec.name,
+        text: spec.text,
+        params: params,
+        mask: mask
+    };
+}
+exports.Query = Query;
 function isResultQuery(query) {
-    var queryMask = query['mask'];
+    const queryMask = query['mask'];
     if (queryMask === 'object' || queryMask === 'list') {
         return true;
     }
@@ -29,13 +38,13 @@ function toDbQuery(query) {
     if (query == undefined || query.text == undefined || query.text.trim() === '')
         throw new errors_1.QueryError('Invalid query: query text cannot be empty');
     if (query.params) {
-        var params = [];
-        var text = query.text.replace(paramPattern, function (match, paramName) {
-            var param = query.params[paramName];
+        const params = [];
+        let text = query.text.replace(paramPattern, function (match, paramName) {
+            const param = query.params[paramName];
             return stringifySingleParam(param, params);
         });
         text = text.replace(arrayParamPatter, function (match, paramName) {
-            var param = query.params[paramName];
+            const param = query.params[paramName];
             if (param && !Array.isArray(param))
                 throw new errors_1.QueryError('Invalid query: non-array supplied for array parameter');
             return stringifyArrayParam(param, params);
@@ -46,7 +55,9 @@ function toDbQuery(query) {
         };
     }
     else {
-        return { text: formatQueryText(query.text) };
+        return {
+            text: formatQueryText(query.text)
+        };
     }
 }
 exports.toDbQuery = toDbQuery;
@@ -62,7 +73,7 @@ function stringifySingleParam(value, params) {
         case 'string':
             return isSafeString(value) ? `'${value}'` : '$' + params.push(value);
         case 'function':
-            var paramValue = value.valueOf();
+            let paramValue = value.valueOf();
             if (typeof paramValue === 'function') {
                 throw new errors_1.QueryError('Query parameter cannot be a function');
             }
@@ -72,7 +83,7 @@ function stringifySingleParam(value, params) {
                 return `'${value.toISOString()}'`;
             }
             else {
-                var paramValue = value.valueOf();
+                let paramValue = value.valueOf();
                 if (typeof paramValue === 'object') {
                     paramValue = JSON.stringify(value);
                 }
@@ -83,13 +94,12 @@ function stringifySingleParam(value, params) {
 function stringifyArrayParam(values, params) {
     if (values == undefined || values.length === 0)
         return 'null';
-    var paramValues = [];
-    var arrayType = typeof values[0];
-    for (var i = 0; i < values.length; i++) {
-        var value = values[i];
+    const paramValues = [];
+    const arrayType = typeof values[0];
+    for (let value of values) {
         if (value == undefined)
             continue;
-        var valueType = typeof value;
+        let valueType = typeof value;
         if (valueType !== arrayType)
             throw new errors_1.QueryError('Query parameter cannot be an array of mixed values');
         if (valueType === 'string') {
@@ -110,7 +120,7 @@ function stringifyArrayParam(values, params) {
     return paramValues.join(',');
 }
 function isSafeString(value) {
-    return (value.indexOf('\'') === -1 && value.indexOf(`\\`) === -1);
+    return (!value.includes('\'') && !value.includes(`\\`));
 }
 function formatQueryText(text) {
     text = text.trim();
