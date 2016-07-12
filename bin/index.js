@@ -8,7 +8,7 @@ const util_1 = require('./lib/util');
 ;
 // GLOBALS
 // ================================================================================================
-var databases = new Map();
+const databases = new Map();
 // export library configurations
 exports.config = {
     connectionConstructor: Connection_1.Connection,
@@ -38,33 +38,39 @@ exports.db = db;
 // ================================================================================================
 class Database {
     constructor(settings) {
+        this.name = settings.database;
         this.settings = settings;
+        this.pool = pg.pools.getOrCreate(this.settings);
     }
     connect(options) {
         options = Object.assign({}, exports.defaults, options);
-        var start = process.hrtime();
-        var logger = exports.config.logger;
-        logger && logger.log(`Connecting to the database; pool state ${this.getPoolDescription()}`);
+        const start = process.hrtime();
+        const logger = exports.config.logger;
+        logger && logger.debug(`Connecting to the database; pool state ${this.getPoolDescription()}`);
         return new Promise((resolve, reject) => {
             pg.connect(this.settings, (error, client, done) => {
                 if (error)
                     return reject(new errors_1.ConnectionError(error));
-                var connection = new exports.config.connectionConstructor(this, options);
+                const connection = new exports.config.connectionConstructor(this, options);
                 connection.inject(client, done);
-                logger && logger.log(`Connected in ${util_1.since(start)} ms; pool state: ${this.getPoolDescription()}`);
+                logger && logger.log(`${this.name}::connected`, {
+                    connectionTime: util_1.since(start),
+                    poolSize: this.pool.getPoolSize(),
+                    poolAvailable: this.pool.availableObjectsCount()
+                });
                 resolve(connection);
             });
         });
     }
     getPoolState() {
-        var pool = pg.pools.getOrCreate(this.settings);
+        const pool = pg.pools.getOrCreate(this.settings);
         return {
             size: pool.getPoolSize(),
             available: pool.availableObjectsCount()
         };
     }
     getPoolDescription() {
-        var pool = pg.pools.getOrCreate(this.settings);
+        const pool = pg.pools.getOrCreate(this.settings);
         return `{size: ${pool.getPoolSize()}, available: ${pool.availableObjectsCount()}}`;
     }
 }

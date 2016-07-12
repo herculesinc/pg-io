@@ -13,7 +13,7 @@ export class PgError extends Error {
 			super(messageOrCause.message);
 			this.cause = messageOrCause;
 		}
-		(Error as any).captureStackTrace(this, this.constructor);
+		Error.captureStackTrace(this, this.constructor);
 	}
 }
 

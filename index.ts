@@ -27,7 +27,15 @@ export interface Configuration {
 }
 
 export interface Logger {
-    log(message: string): void;
+    debug(message: string);
+    info(message: string);
+    warn(message: string);
+
+    error(error: Error);
+
+    log(event: string, properties?: { [key: string]: any });
+    track(metric: string, value: number);
+    trace(service: string, command: string, time: number, success?: boolean);
 }
 
 export interface Utilities {
@@ -36,22 +44,22 @@ export interface Utilities {
 
 // GLOBALS
 // ================================================================================================
-var databases = new Map<string, Database>();
+const databases = new Map<string, Database>();
 
 // export library configurations
-export var config: Configuration = {
-    connectionConstructor: Connection,
-    logger: undefined
+export const config: Configuration = {
+    connectionConstructor   : Connection,
+    logger                  : undefined
 };
 
 // export defaults to enable overriding
-export var defaults: Options = {
+export const defaults: Options = {
     collapseQueries : false,
     startTransaction: false
 };
 
 // exported utils
-export var utils: Utilities = {
+export const utils: Utilities = {
     since: since
 }
 
@@ -69,39 +77,48 @@ export function db(settings: Settings): Database {
 // ================================================================================================
 export class Database {
 
+    name    : string;
+    pool    : pg.ClientPool;
     settings: Settings;
-    
+
     constructor(settings: Settings) {
+        this.name = settings.database;
         this.settings = settings;
+        this.pool = pg.pools.getOrCreate(this.settings);
     }
 
     connect(options?: Options): Promise<Connection> {
         options = Object.assign({}, defaults, options);
         
-        var start = process.hrtime();
-        var logger = config.logger;
-        logger && logger.log(`Connecting to the database; pool state ${this.getPoolDescription()}`)
+        const start = process.hrtime();
+        const logger = config.logger;
+        logger && logger.debug(`Connecting to the database; pool state ${this.getPoolDescription()}`)
         return new Promise((resolve, reject) => {
             pg.connect(this.settings, (error, client, done) => {
                 if (error) return reject(new ConnectionError(error));
-                var connection = new config.connectionConstructor(this, options);
+                const connection = new config.connectionConstructor(this, options);
                 connection.inject(client, done)
-                logger && logger.log(`Connected in ${since(start)} ms; pool state: ${this.getPoolDescription()}`);
+        
+                logger && logger.log(`${this.name}::connected`, {
+                    connectionTime  : since(start),
+                    poolSize        : this.pool.getPoolSize(),
+                    poolAvailable   : this.pool.availableObjectsCount()
+                });
                 resolve(connection);
             });
         });
     }
 
     getPoolState(): PoolState {
-        var pool = pg.pools.getOrCreate(this.settings);
+        const pool = pg.pools.getOrCreate(this.settings);
         return {
-            size: pool.getPoolSize(),
-            available: pool.availableObjectsCount()
+            size        : pool.getPoolSize(),
+            available   : pool.availableObjectsCount()
         };
     }
     
     getPoolDescription(): string {
-        var pool = pg.pools.getOrCreate(this.settings);
+        const pool = pg.pools.getOrCreate(this.settings);
         return `{size: ${pool.getPoolSize()}, available: ${pool.availableObjectsCount()}}`;
     }
 }

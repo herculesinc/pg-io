@@ -6,13 +6,13 @@
   "bundle": "typings/tsd.d.ts",
   "installed": {
     "pg/pg.d.ts": {
-      "commit": "db3a54c801e29e73bdaae327a64ed7991778c958"
-    },
-    "node/node.d.ts": {
-      "commit": "db3a54c801e29e73bdaae327a64ed7991778c958"
+      "commit": "de82425735f84a10b43921ae4b1d085b3752a626"
     },
     "mocha/mocha.d.ts": {
       "commit": "3b0f362204ea965952dafdb682a5274d527ef9d0"
+    },
+    "node/node.d.ts": {
+      "commit": "de82425735f84a10b43921ae4b1d085b3752a626"
     }
   }
 }

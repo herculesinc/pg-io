@@ -1,4 +1,4 @@
 export function since(start: number[]) {
-    var diff = process.hrtime(start);
-    return Math.floor(diff[0] * 10000 + diff[1] / 100000) / 10;
+    const diff = process.hrtime(start);
+    return diff[0] * 1000 + Math.floor(diff[1] / 100000) / 10;
 }

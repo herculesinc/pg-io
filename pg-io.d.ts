@@ -10,12 +10,10 @@ declare module "pg-io" {
         database    : string;
         poolSize?   : number;
     }
-    
+
     export interface Configuration {
         connectionConstructor: typeof Connection;
-        logger: {
-            log(message: string);
-        };
+        logger: Logger;
     }
     
     export interface Utilities {
@@ -23,9 +21,9 @@ declare module "pg-io" {
     }
 
     export function db(settings: ConnectionSettings): Database;
-    export var defaults: ConnectionOptions;
-    export var config: Configuration;
-    export var utils: Utilities;
+    export const defaults: ConnectionOptions;
+    export const config: Configuration;
+    export const utils: Utilities;
 
     // DATABASE
     // --------------------------------------------------------------------------------------------
@@ -90,6 +88,14 @@ declare module "pg-io" {
         handler?: ResultHandler<T>;
     }
     
+    export interface OneResultQuery<T> extends ResultQuery<T> {
+        mask    : 'object';
+    }
+
+    export interface ListResultQuery<T> extends ResultQuery<T> {
+        mask    : 'list';
+    }
+    
     // SUPPORTING ENUMS AND INTERFACES
     // --------------------------------------------------------------------------------------------
     const enum ConnectionState {
@@ -116,4 +122,18 @@ declare module "pg-io" {
     export class TransactionError extends PgError {}
     export class QueryError extends PgError {}
     export class ParseError extends PgError {}
+
+    // LOGGER
+    // --------------------------------------------------------------------------------------------
+    export interface Logger {
+        debug(message: string);
+        info(message: string);
+        warn(message: string);
+
+        error(error: Error);
+
+        log(event: string, properties?: { [key: string]: any });
+        track(metric: string, value: number);
+        trace(service: string, command: string, time: number, success?: boolean);
+    }
 }
