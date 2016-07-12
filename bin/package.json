@@ -23,14 +23,13 @@
     "pg": "^4.4.0"
   },
   "engines": {
-    "node": "^5.0.0"
+    "node": "6.3.x"
   },
   "devDependencies": {
-    "del": "^1.2.1",
-    "gulp": "^3.9.0",
-    "gulp-babel": "^5.2.1",
-    "gulp-mocha": "^2.1.3",
-    "gulp-sourcemaps": "^1.5.2",
-    "mocha": "^2.2.5"
+    "mocha": "2.5.x",
+    "del": "2.2.x",
+    "gulp": "3.9.x",
+    "gulp-mocha": "2.2.x",
+    "gulp-util": "3.0.x"
   }
 }
