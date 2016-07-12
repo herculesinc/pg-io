@@ -1,10 +1,10 @@
 "use strict";
 // IMPORTS
 // ================================================================================================
-var pg = require('pg');
-var errors_1 = require('./lib/errors');
-var Connection_1 = require('./lib/Connection');
-var util_1 = require('./lib/util');
+const pg = require('pg');
+const errors_1 = require('./lib/errors');
+const Connection_1 = require('./lib/Connection');
+const util_1 = require('./lib/util');
 ;
 // GLOBALS
 // ================================================================================================
@@ -44,13 +44,14 @@ class Database {
         options = Object.assign({}, exports.defaults, options);
         var start = process.hrtime();
         var logger = exports.config.logger;
-        logger && logger.log(`Connecting to the database; pool state ${ this.getPoolDescription() }`);
+        logger && logger.log(`Connecting to the database; pool state ${this.getPoolDescription()}`);
         return new Promise((resolve, reject) => {
             pg.connect(this.settings, (error, client, done) => {
-                if (error) return reject(new errors_1.ConnectionError(error));
+                if (error)
+                    return reject(new errors_1.ConnectionError(error));
                 var connection = new exports.config.connectionConstructor(this, options);
                 connection.inject(client, done);
-                logger && logger.log(`Connected in ${ util_1.since(start) } ms; pool state: ${ this.getPoolDescription() }`);
+                logger && logger.log(`Connected in ${util_1.since(start)} ms; pool state: ${this.getPoolDescription()}`);
                 resolve(connection);
             });
         });
@@ -64,7 +65,7 @@ class Database {
     }
     getPoolDescription() {
         var pool = pg.pools.getOrCreate(this.settings);
-        return `{size: ${ pool.getPoolSize() }, available: ${ pool.availableObjectsCount() }}`;
+        return `{size: ${pool.getPoolSize()}, available: ${pool.availableObjectsCount()}}`;
     }
 }
 exports.Database = Database;
@@ -78,4 +79,4 @@ exports.ConnectionError = errors_2.ConnectionError;
 exports.TransactionError = errors_2.TransactionError;
 exports.QueryError = errors_2.QueryError;
 exports.ParseError = errors_2.ParseError;
-//# sourceMappingURL=../bin/index.js.map
+//# sourceMappingURL=index.js.map

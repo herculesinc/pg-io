@@ -1,5 +1,5 @@
 "use strict";
-var Query_1 = require('./Query');
+const Query_1 = require('./Query');
 // CLASS DEFINITION
 // ================================================================================================
 class Collector {
@@ -13,23 +13,27 @@ class Collector {
                         this.results.set(query.name, []);
                         this.singleResult = false;
                     }
-                } else {
+                }
+                else {
                     this.results.set(query.name, undefined);
                 }
             }
         }
     }
     addResult(query, result) {
-        if (result == undefined || this.results.has(query.name) === false) return;
+        if (result == undefined || this.results.has(query.name) === false)
+            return;
         if (Query_1.isResultQuery(query)) {
             if (query.mask === 'object') {
                 result = result ? result[0] : undefined;
-                if (result == undefined) return undefined;
+                if (result == undefined)
+                    return undefined;
             }
             var queryResults = this.results.get(query.name);
             if (queryResults) {
                 queryResults.push(result);
-            } else {
+            }
+            else {
                 this.results.set(query.name, result);
             }
         }
@@ -37,12 +41,14 @@ class Collector {
     getResults() {
         if (this.results.size === 0) {
             return undefined;
-        } else if (this.results.size === 1 && this.singleResult) {
+        }
+        else if (this.results.size === 1 && this.singleResult) {
             return this.results.values().next().value;
-        } else {
+        }
+        else {
             return this.results;
         }
     }
 }
 exports.Collector = Collector;
-//# sourceMappingURL=../../bin/lib/Collector.js.map
+//# sourceMappingURL=Collector.js.map

@@ -4,4 +4,4 @@ function since(start) {
     return Math.floor(diff[0] * 10000 + diff[1] / 100000) / 10;
 }
 exports.since = since;
-//# sourceMappingURL=../../bin/lib/util.js.map
+//# sourceMappingURL=util.js.map

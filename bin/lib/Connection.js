@@ -1,9 +1,9 @@
 "use strict";
-var index_1 = require('./../index');
-var Query_1 = require('./Query');
-var Collector_1 = require('./Collector');
-var errors_1 = require('./errors');
-var util_1 = require('./util');
+const index_1 = require('./../index');
+const Query_1 = require('./Query');
+const Collector_1 = require('./Collector');
+const errors_1 = require('./errors');
+const util_1 = require('./util');
 // CONNECTION CLASS DEFINITION
 // ================================================================================================
 class Connection {
@@ -15,95 +15,105 @@ class Connection {
         this.log = index_1.config.logger ? index_1.config.logger.log : undefined;
         if (options.startTransaction) {
             this.log && this.log(`Starting database transaction in lazy mode`);
-            this.state = 3;
-        } else /* transactionPending */{
-                this.state = 1;
-            }
+            this.state = 3 /* transactionPending */;
+        }
+        else {
+            this.state = 1 /* connection */;
+        }
     }
-    /* connection */inject(client, done) {
+    inject(client, done) {
         this.client = client;
         this.done = done;
     }
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
     get inTransaction() {
-        return this.state === 2 /* transaction */ || this.state === 3 /* transactionPending */;
+        return (this.state === 2 /* transaction */ || this.state === 3 /* transactionPending */);
     }
     get isActive() {
-        return this.state !== 4 /* released */;
+        return (this.state !== 4 /* released */);
     }
     // LIFECYCLE METHODS
     // --------------------------------------------------------------------------------------------
-    startTransaction() {
-        let lazy = arguments.length <= 0 || arguments[0] === undefined ? true : arguments[0];
-
-        if (this.isActive === false) return Promise.reject(new errors_1.ConnectionError('Cannot start transaction: connection is not currently active'));
-        if (this.inTransaction) return Promise.reject(new errors_1.TransactionError('Cannot start transaction: connection is already in transaction'));
-        this.log && this.log(`Starting database transaction in ${ lazy ? 'lazy' : 'eager' } mode`);
+    startTransaction(lazy = true) {
+        if (this.isActive === false)
+            return Promise.reject(new errors_1.ConnectionError('Cannot start transaction: connection is not currently active'));
+        if (this.inTransaction)
+            return Promise.reject(new errors_1.TransactionError('Cannot start transaction: connection is already in transaction'));
+        this.log && this.log(`Starting database transaction in ${lazy ? 'lazy' : 'eager'} mode`);
         if (lazy) {
-            this.state = 3;
-            /* transactionPending */return Promise.resolve();
-        } else {
+            this.state = 3 /* transactionPending */;
+            return Promise.resolve();
+        }
+        else {
             return this.execute(BEGIN_TRANSACTION).then(() => {
-                this.state = 2;
+                this.state = 2 /* transaction */;
             });
         }
     }
-    /* transaction */release(action) {
-        if (this.state === 4 /* released */) return Promise.reject(new errors_1.ConnectionError('Cannot release connection: connection has already been released'));
+    release(action) {
+        if (this.state === 4 /* released */)
+            return Promise.reject(new errors_1.ConnectionError('Cannot release connection: connection has already been released'));
         var start = process.hrtime();
         switch (action) {
             case 'commit':
                 this.log && this.log('Committing transaction and releasing connection back to the pool');
-                return this.execute(COMMIT_TRANSACTION).then(() => {
+                return this.execute(COMMIT_TRANSACTION)
+                    .then(() => {
                     this.releaseConnection();
-                    this.log && this.log(`Transaction committed in ${ util_1.since(start) } ms; pool state: ${ this.database.getPoolDescription() }`);
+                    this.log && this.log(`Transaction committed in ${util_1.since(start)} ms; pool state: ${this.database.getPoolDescription()}`);
                 });
             case 'rollback':
                 this.log && this.log('Rolling back transaction and releasing connection back to the pool');
-                return this.rollbackAndRelease().then(result => {
-                    this.log && this.log(`Transaction rolled back in ${ util_1.since(start) } ms; pool state: ${ this.database.getPoolDescription() }`);
+                return this.rollbackAndRelease()
+                    .then((result) => {
+                    this.log && this.log(`Transaction rolled back in ${util_1.since(start)} ms; pool state: ${this.database.getPoolDescription()}`);
                     return result;
                 });
             default:
                 this.log && this.log('Releasing connection back to the pool');
                 if (this.inTransaction) {
                     return this.rollbackAndRelease(new errors_1.TransactionError('Uncommitted transaction detected during connection release'));
-                } else {
+                }
+                else {
                     this.releaseConnection();
-                    this.log && this.log(`Connection released in ${ util_1.since(start) } ms; pool state: ${ this.database.getPoolDescription() }`);
+                    this.log && this.log(`Connection released in ${util_1.since(start)} ms; pool state: ${this.database.getPoolDescription()}`);
                     return Promise.resolve();
                 }
         }
     }
     execute(queryOrQueries) {
-        if (this.isActive === false) return Promise.reject(new errors_1.ConnectionError('Cannot execute queries: connection has been released'));
+        if (this.isActive === false)
+            return Promise.reject(new errors_1.ConnectionError('Cannot execute queries: connection has been released'));
         var start = process.hrtime();
-
-        var _buildQueryList = this.buildQueryList(queryOrQueries);
-
-        var queries = _buildQueryList.queries;
-        var state = _buildQueryList.state;
-
-        this.log && this.log(`Executing ${ queries.length } queries: [${ buildQueryNameList(queries).join(', ') }]`);
-        return Promise.resolve().then(() => this.buildDbQueries(queries)).then(dbQueries => dbQueries.map(query => this.executeQuery(query))).then(queryResults => Promise.all(queryResults)).then(results => {
+        var { queries, state } = this.buildQueryList(queryOrQueries);
+        this.log && this.log(`Executing ${queries.length} queries: [${buildQueryNameList(queries).join(', ')}]`);
+        return Promise.resolve()
+            .then(() => this.buildDbQueries(queries))
+            .then((dbQueries) => dbQueries.map((query) => this.executeQuery(query)))
+            .then((queryResults) => Promise.all(queryResults))
+            .then((results) => {
             try {
-                this.log && this.log(`Queries executed in ${ util_1.since(start) } ms; processing results`);
+                this.log && this.log(`Queries executed in ${util_1.since(start)} ms; processing results`);
                 start = process.hrtime();
                 var flatResults = results.reduce((agg, result) => agg.concat(result), []);
-                if (queries.length !== flatResults.length) throw new errors_1.ParseError(`Cannot parse query results: expected (${ queries.length }) results but recieved (${ results.length })`);
+                if (queries.length !== flatResults.length)
+                    throw new errors_1.ParseError(`Cannot parse query results: expected (${queries.length}) results but recieved (${results.length})`);
                 var collector = new Collector_1.Collector(queries);
                 queries.forEach((query, i) => {
                     collector.addResult(query, this.processQueryResult(query, flatResults[i]));
                 });
                 this.state = state;
-                this.log && this.log(`Query results processed in ${ util_1.since(start) } ms`);
+                this.log && this.log(`Query results processed in ${util_1.since(start)} ms`);
                 return collector.getResults();
-            } catch (error) {
-                if (error instanceof errors_1.PgError === false) error = new errors_1.ParseError(error);
+            }
+            catch (error) {
+                if (error instanceof errors_1.PgError === false)
+                    error = new errors_1.ParseError(error);
                 throw error;
             }
-        }).catch(reason => {
+        })
+            .catch((reason) => {
             return this.rollbackAndRelease(reason);
         });
     }
@@ -116,7 +126,8 @@ class Connection {
             for (var i = 0; i < result.rows.length; i++) {
                 processedResult.push(query.handler.parse(result.rows[i]));
             }
-        } else {
+        }
+        else {
             processedResult = result.rows;
         }
         return processedResult;
@@ -128,13 +139,15 @@ class Connection {
                     error = new errors_1.QueryError(error);
                     this.releaseConnection(error);
                     reason ? reject(reason) : reject(error);
-                } else {
+                }
+                else {
                     if (reason) {
                         this.releaseConnection();
                         reject(reason);
-                    } else {
-                        this.state = 1;
-                        /* connection */this.releaseConnection();
+                    }
+                    else {
+                        this.state = 1 /* connection */;
+                        this.releaseConnection();
                         resolve();
                     }
                 }
@@ -142,23 +155,24 @@ class Connection {
         });
     }
     releaseConnection(error) {
-        this.state = 4;
-        /* released */this.done(error);
+        this.state = 4 /* released */;
+        this.done(error);
     }
     // PRIVATE METHODS
     // --------------------------------------------------------------------------------------------
     buildQueryList(queryOrQueries) {
         if (Array.isArray(queryOrQueries)) {
             var queries = queryOrQueries;
-        } else {
-            var queries = queryOrQueries ? [queryOrQueries] : [];
+        }
+        else {
+            var queries = (queryOrQueries ? [queryOrQueries] : []);
         }
         var state = this.state;
         if (this.state === 3 /* transactionPending */ && queries.length > 0) {
             queries.unshift(BEGIN_TRANSACTION);
-            state = 2;
+            state = 2 /* transaction */;
         }
-        /* transaction */return { queries: queries, state: state };
+        return { queries, state };
     }
     buildDbQueries(queries) {
         var dbQueries = [];
@@ -168,7 +182,8 @@ class Connection {
             if (this.options.collapseQueries && previousQuery && !Query_1.isParametrized(dbQuery) && !Query_1.isParametrized(previousQuery)) {
                 previousQuery.text += dbQuery.text;
                 previousQuery.multiResult = true;
-            } else {
+            }
+            else {
                 dbQueries.push(dbQuery);
                 previousQuery = dbQuery;
             }
@@ -201,8 +216,8 @@ var ROLLBACK_TRANSACTION = {
 // HELPER FUNCTIONS
 // ================================================================================================
 function buildQueryNameList(queryList) {
-    return queryList.map(query => {
+    return queryList.map((query) => {
         return query.name ? query.name : 'unnamed';
     });
 }
-//# sourceMappingURL=../../bin/lib/Connection.js.map
+//# sourceMappingURL=Connection.js.map

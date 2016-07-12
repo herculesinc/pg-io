@@ -4,7 +4,8 @@ class PgError extends Error {
         if (typeof messageOrCause === 'string') {
             super(messageOrCause);
             this.cause = cause;
-        } else {
+        }
+        else {
             super(messageOrCause.message);
             this.cause = messageOrCause;
         }
@@ -40,4 +41,4 @@ class ParseError extends PgError {
     }
 }
 exports.ParseError = ParseError;
-//# sourceMappingURL=../../bin/lib/errors.js.map
+//# sourceMappingURL=errors.js.map
