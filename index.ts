@@ -22,8 +22,9 @@ export interface PoolState {
 }
 
 export interface Configuration {
-    connectionConstructor: typeof Connection,
-    logger: Logger
+    cc          : typeof Connection,
+    logger      : Logger,
+    logQueryText: boolean;
 }
 
 export interface Logger {
@@ -48,8 +49,9 @@ const databases = new Map<string, Database>();
 
 // export library configurations
 export const config: Configuration = {
-    connectionConstructor   : Connection,
-    logger                  : undefined
+    cc          : Connection,
+    logger      : undefined,
+    logQueryText: false
 };
 
 // export defaults to enable overriding
@@ -96,7 +98,7 @@ export class Database {
         return new Promise((resolve, reject) => {
             pg.connect(this.settings, (error, client, done) => {
                 if (error) return reject(new ConnectionError(error));
-                const connection = new config.connectionConstructor(this, options);
+                const connection = new config.cc(this, options);
                 connection.inject(client, done)
         
                 logger && logger.log(`${this.name}::connected`, {
@@ -110,16 +112,14 @@ export class Database {
     }
 
     getPoolState(): PoolState {
-        const pool = pg.pools.getOrCreate(this.settings);
         return {
-            size        : pool.getPoolSize(),
-            available   : pool.availableObjectsCount()
+            size        : this.pool.getPoolSize(),
+            available   : this.pool.availableObjectsCount()
         };
     }
     
     getPoolDescription(): string {
-        const pool = pg.pools.getOrCreate(this.settings);
-        return `{size: ${pool.getPoolSize()}, available: ${pool.availableObjectsCount()}}`;
+        return `{ size: ${this.pool.getPoolSize()}, available: ${this.pool.availableObjectsCount()} }`;
     }
 }
 

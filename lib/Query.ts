@@ -20,24 +20,21 @@ export interface QuerySpec {
     name?   : string;
 }
 
-export interface Query {
-    text    : string;
-    name?   : string;
+export interface Query extends QuerySpec {
     params? : any;
 }
 
-export interface ResultQuery<T> extends Query {
-    mask    : QueryMask;
+export interface SingleResultQuery<T> extends Query {
+    mask    : 'object';
     handler?: ResultHandler<T>;
 }
 
-export interface OneResultQuery<T> extends ResultQuery<T> {
-    mask    : 'object';
+export interface ListResultQuery<T> extends Query {
+    mask    : 'list';
+    handler?: ResultHandler<T>;
 }
 
-export interface ListResultQuery<T> extends ResultQuery<T> {
-    mask    : 'list';
-}
+export type ResultQuery<T> = SingleResultQuery<T> | ListResultQuery<T>;
 
 export interface DbQuery {
     text        : string;
@@ -48,10 +45,15 @@ export interface DbQuery {
 // PUBLIC FUNCTIONS
 // ================================================================================================
 export function Query(spec: QuerySpec, params?: any): Query
-export function Query<T>(spec: QuerySpec, params?: any, mask?: QueryMask): ResultQuery<T>
+export function Query<T>(spec: QuerySpec, params?: any, mask?: 'list'): ListResultQuery<T>
+export function Query<T>(spec: QuerySpec, params?: any, mask?: 'object'): SingleResultQuery<T>
 export function Query(spec: QuerySpec, params?: any, mask?: QueryMask): Query | ResultQuery<any> {
     if (!spec) return undefined;
     
+    if (mask && (mask !== 'list' || 'object')) {
+        throw new QueryError(`Invalid query mask: value '${mask}' is not supported`);
+    }
+
     return {
         name    : spec.name,
         text    : spec.text,

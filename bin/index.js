@@ -11,8 +11,9 @@ const util_1 = require('./lib/util');
 const databases = new Map();
 // export library configurations
 exports.config = {
-    connectionConstructor: Connection_1.Connection,
-    logger: undefined
+    cc: Connection_1.Connection,
+    logger: undefined,
+    logQueryText: false
 };
 // export defaults to enable overriding
 exports.defaults = {
@@ -51,7 +52,7 @@ class Database {
             pg.connect(this.settings, (error, client, done) => {
                 if (error)
                     return reject(new errors_1.ConnectionError(error));
-                const connection = new exports.config.connectionConstructor(this, options);
+                const connection = new exports.config.cc(this, options);
                 connection.inject(client, done);
                 logger && logger.log(`${this.name}::connected`, {
                     connectionTime: util_1.since(start),
@@ -63,15 +64,13 @@ class Database {
         });
     }
     getPoolState() {
-        const pool = pg.pools.getOrCreate(this.settings);
         return {
-            size: pool.getPoolSize(),
-            available: pool.availableObjectsCount()
+            size: this.pool.getPoolSize(),
+            available: this.pool.availableObjectsCount()
         };
     }
     getPoolDescription() {
-        const pool = pg.pools.getOrCreate(this.settings);
-        return `{size: ${pool.getPoolSize()}, available: ${pool.availableObjectsCount()}}`;
+        return `{ size: ${this.pool.getPoolSize()}, available: ${this.pool.availableObjectsCount()} }`;
     }
 }
 exports.Database = Database;

@@ -15,7 +15,7 @@ class Collector {
                     }
                 }
                 else {
-                    this.results.set(query.name, undefined);
+                    this.results.set(query.name);
                 }
             }
         }
@@ -29,7 +29,7 @@ class Collector {
                 if (result == undefined)
                     return undefined;
             }
-            var queryResults = this.results.get(query.name);
+            const queryResults = this.results.get(query.name);
             if (queryResults) {
                 queryResults.push(result);
             }

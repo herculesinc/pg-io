@@ -1,15 +1,16 @@
 ﻿// IMPORTS
 // ================================================================================================
 import { Connection } from './../lib/Connection';
-import { Query, ResultQuery, QueryMask } from './../lib/Query';
+import { Query, ResultQuery, SingleResultQuery, ListResultQuery } from './../lib/Query';
 
 // INTERFACES
 // ================================================================================================
 export interface User {
-    id: number;
-    username: string;
-    createdOn: Date;
-    updatedOn: Date;
+    id          : number;
+    username    : string;
+    tags        : string[],
+    createdOn   : Date;
+    updatedOn   : Date;
 }
 
 // QUERIES
@@ -44,7 +45,7 @@ class qUpdateUser extends AbstractQuery {
     }
 }
 
-export class qFetchUserById implements ResultQuery<User> {
+export class qFetchUserById implements SingleResultQuery<User> {
     text: string;
     mask: 'object' = 'object';
 
@@ -57,7 +58,7 @@ export class qFetchUserById implements ResultQuery<User> {
     get name(): string { return (<any> this).constructor.name; }
 }
 
-export class qFetchUsersByIdList implements ResultQuery<User> {
+export class qFetchUsersByIdList implements ListResultQuery<User> {
     text: string;
     mask: 'list' = 'list';
 

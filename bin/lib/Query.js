@@ -9,6 +9,9 @@ const arrayParamPatter = /\[\[([a-z0-9\$_]+)\]\]/gi;
 function Query(spec, params, mask) {
     if (!spec)
         return undefined;
+    if (mask && (mask !== 'list' || 'object')) {
+        throw new errors_1.QueryError(`Invalid query mask: value '${mask}' is not supported`);
+    }
     return {
         name: spec.name,
         text: spec.text,

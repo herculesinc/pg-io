@@ -3,8 +3,8 @@
 import * as assert from 'assert';
 import * as pg from 'pg';
 
-import { Database, config } from './../index';
-import { Query, ResultQuery, isResultQuery, isParametrized, toDbQuery, DbQuery } from './Query';
+import { Database, config, Logger } from './../index';
+import { Query, SingleResultQuery, ListResultQuery, isResultQuery, isParametrized, toDbQuery, DbQuery } from './Query';
 import { Collector } from './Collector';
 import { PgError, ConnectionError, TransactionError, QueryError, ParseError } from './errors'
 import { since } from './util';
@@ -30,7 +30,7 @@ export class Connection {
     protected state     : State;
     protected options   : Options;
     protected database  : Database;
-    protected log       : (message: string) => void;
+    protected logger    : Logger;
     private client      : pg.Client;
     private done        : (error?: Error) => void;
 
@@ -39,9 +39,9 @@ export class Connection {
     constructor(database: Database, options: Options) {
         this.database = database;
         this.options = options;
-        this.log = config.logger ? config.logger.log : undefined;
+        this.logger = config.logger;
         if (options.startTransaction) {
-            this.log && this.log(`Starting database transaction in lazy mode`)
+            this.logger && this.logger.debug(`Starting database transaction in lazy mode`)
             this.state = State.transactionPending;
         }
         else{
@@ -67,15 +67,17 @@ export class Connection {
     // LIFECYCLE METHODS
     // --------------------------------------------------------------------------------------------
     startTransaction(lazy = true): Promise<void> {
-        if (this.isActive === false)
+        if (this.isActive === false) {
             return Promise.reject(
                 new ConnectionError('Cannot start transaction: connection is not currently active'));
+        }
         
-        if (this.inTransaction)
+        if (this.inTransaction) {
             return Promise.reject(
                 new TransactionError('Cannot start transaction: connection is already in transaction'));
+        }
         
-        this.log && this.log(`Starting database transaction in ${lazy ? 'lazy' : 'eager'} mode`)
+        this.logger && this.logger.debug(`Starting database transaction in ${lazy ? 'lazy' : 'eager'} mode`);
         if (lazy) {
             this.state = State.transactionPending;
             return Promise.resolve();
@@ -87,36 +89,43 @@ export class Connection {
         }
     }
 
-    release(action?: string): Promise<any> {
-        if (this.state === State.released)
+    release(action?: 'commit' | 'rollback'): Promise<any> {
+        if (this.state === State.released) {
             return Promise.reject(
                 new ConnectionError('Cannot release connection: connection has already been released'));
+        }
         
-        var start = process.hrtime();
+        const start = process.hrtime();
         switch (action) {
             case 'commit':
-                this.log && this.log('Committing transaction and releasing connection back to the pool');
+                this.logger && this.logger.debug('Committing transaction and releasing connection back to the pool');
                 return this.execute(COMMIT_TRANSACTION)
                     .then(() => { 
                         this.releaseConnection();
-                        this.log && this.log(`Transaction committed in ${since(start)} ms; pool state: ${this.database.getPoolDescription()}`);
+                        const duration = since(start);
+                        this.logger && this.logger.debug(`Transaction committed in ${duration} ms; pool state: ${this.database.getPoolDescription()}`);
+                        this.logger && this.logger.track(`${this.database.name}::commit`, duration);
                     });
             case 'rollback':
-                this.log && this.log('Rolling back transaction and releasing connection back to the pool');
+                this.logger && this.logger.debug('Rolling back transaction and releasing connection back to the pool');
                 return this.rollbackAndRelease()
                     .then((result) => {
-                        this.log && this.log(`Transaction rolled back in ${since(start)} ms; pool state: ${this.database.getPoolDescription()}`);
+                        const duration = since(start);
+                        this.logger && this.logger.debug(`Transaction rolled back in ${duration} ms; pool state: ${this.database.getPoolDescription()}`);
+                        this.logger && this.logger.track(`${this.database.name}::rollback`, duration);
                         return result;
                     });
             default:
-                this.log && this.log('Releasing connection back to the pool');
+                this.logger && this.logger.debug('Releasing connection back to the pool');
                 if (this.inTransaction) {
                     return this.rollbackAndRelease(
                         new TransactionError('Uncommitted transaction detected during connection release'));
                 }
                 else {
                     this.releaseConnection();
-                    this.log && this.log(`Connection released in ${since(start)} ms; pool state: ${this.database.getPoolDescription()}`);
+                    const duration = since(start);
+                    this.logger && this.logger.debug(`Connection released in ${duration} ms; pool state: ${this.database.getPoolDescription()}`);
+                    this.logger && this.logger.track(`${this.database.name}::release`, duration);
                     return Promise.resolve();
                 }
         }
@@ -124,17 +133,19 @@ export class Connection {
 
     // EXECUTE METHOD
     // --------------------------------------------------------------------------------------------
-    execute<T>(query: ResultQuery<T>): Promise<any>
+    execute<T>(query: SingleResultQuery<T>): Promise<T>
+    execute<T>(query: ListResultQuery<T>): Promise<T[]>
     execute(query: Query): Promise<any>
-    execute(queries: Query[]): Promise<Map<string,any>>
+    execute(queries: Query[]): Promise<Map<string, any>>
     execute(queryOrQueries: Query | Query[]): Promise<any> {
-        if (this.isActive === false)
+        if (this.isActive === false) {
             return Promise.reject(
                 new ConnectionError('Cannot execute queries: connection has been released'));
+        }
 
         var start = process.hrtime();
-        var { queries, state } = this.buildQueryList(queryOrQueries);
-        this.log && this.log(`Executing ${queries.length} queries: [${buildQueryNameList(queries).join(', ')}]`);
+        const { queries, command, state } = this.buildQueryList(queryOrQueries);
+        this.logger && this.logger.debug(`Executing ${queries.length} queries: [${command}]`);
         
         return Promise.resolve()
             .then(() => this.buildDbQueries(queries))
@@ -142,19 +153,25 @@ export class Connection {
             .then((queryResults) => Promise.all(queryResults))
             .then((results) => {
                 try {
-                    this.log && this.log(`Queries executed in ${since(start)} ms; processing results`);
+                    let duration = since(start);
+                    this.logger && this.logger.debug(`Queries executed in ${duration} ms; processing results`);
+                    this.logger && this.logger.trace(this.database.name, command, duration);
                     start = process.hrtime();
                     
-                    var flatResults = results.reduce((agg: any[], result) => agg.concat(result), []);
-                    if (queries.length !== flatResults.length)
+                    const flatResults = results.reduce((agg: any[], result) => agg.concat(result), []);
+                    if (queries.length !== flatResults.length) {
                         throw new ParseError(`Cannot parse query results: expected (${queries.length}) results but recieved (${results.length})`);
+                    }
                     
-                    var collector = new Collector(queries);
-                    queries.forEach((query, i) => {
+                    const collector = new Collector(queries);
+                    for (let i = 0; i < queries.length; i++) {
+                        let query = queries[i];
                         collector.addResult(query, this.processQueryResult(query, flatResults[i]));
-                    });
+                    }
+
                     this.state = state;
-                    this.log && this.log(`Query results processed in ${since(start)} ms`)
+                    duration = since(start);
+                    this.logger && this.logger.debug(`Query results processed in ${duration} ms`);
                     return collector.getResults();
                 }
                 catch (error) {
@@ -175,8 +192,8 @@ export class Connection {
         var processedResult: any[];
         if (query.handler && typeof query.handler.parse === 'function') {
             processedResult = [];
-            for (var i = 0; i < result.rows.length; i++) {
-                processedResult.push(query.handler.parse(result.rows[i]));
+            for (let row of result.rows) {
+                processedResult.push(query.handler.parse(row));
             }
         }
         else {
@@ -215,29 +232,39 @@ export class Connection {
 
     // PRIVATE METHODS
     // --------------------------------------------------------------------------------------------
-    private buildQueryList(queryOrQueries: Query | Query[]) {
-        if (Array.isArray(queryOrQueries)) {
-            var queries = <Query[]> queryOrQueries;
-        }
-        else {
-            var queries = <Query[]> (queryOrQueries? [queryOrQueries] : []);
-        }
+    private buildQueryList(queryOrQueries: Query | Query[]): { queries: Query[], command: string, state: State } {
+        let queries = queryOrQueries 
+            ? (Array.isArray(queryOrQueries) ? queryOrQueries : [queryOrQueries])
+            : [];
 
-        var state = this.state;
+        // if transaction is pending
+        let state = this.state;
         if (this.state === State.transactionPending && queries.length > 0) {
             queries.unshift(BEGIN_TRANSACTION);
             state = State.transaction;
         }
 
-        return { queries, state };
+        if (queries.length === 2 && queries[0] === BEGIN_TRANSACTION) {
+            if (queries[1] === COMMIT_TRANSACTION || queries[1] === ROLLBACK_TRANSACTION) {
+                queries = [];
+            }
+        }
+
+        let qNames: string[] = [];
+        for (let query of queries) {
+            qNames.push(query.name ? query.name : 'unnamed');
+        }
+        const command = qNames.join(', ');
+
+        return { queries, command, state };
     }
     
     private buildDbQueries(queries: Query[]): DbQuery[] {
-        var dbQueries: DbQuery[] = [];
+        const dbQueries: DbQuery[] = [];
         var previousQuery: DbQuery;
     
-        for (var i = 0; i < queries.length; i++) {
-            var dbQuery = toDbQuery(queries[i]);
+        for (let query of queries) {
+            let dbQuery = toDbQuery(query);
             
             if (this.options.collapseQueries && previousQuery && !isParametrized(dbQuery) && !isParametrized(previousQuery)) {
                 previousQuery.text += dbQuery.text;
@@ -263,25 +290,17 @@ export class Connection {
 
 // COMMON QUERIES
 // ================================================================================================
-var BEGIN_TRANSACTION: Query = {
+const BEGIN_TRANSACTION: Query = {
     name: 'qBeginTransaction',
     text: 'BEGIN;'
 };
 
-var COMMIT_TRANSACTION: Query = {
+const COMMIT_TRANSACTION: Query = {
     name: 'qCommitTransaction',
     text: 'COMMIT;'
 };
 
-var ROLLBACK_TRANSACTION: Query = {
+const ROLLBACK_TRANSACTION: Query = {
     name: 'qRollbackTransaction',
     text: 'ROLLBACK;'
 };
-
-// HELPER FUNCTIONS
-// ================================================================================================
-function buildQueryNameList(queryList: Query[]): string[] {
-    return queryList.map((query) => {
-       return query.name ? query.name : 'unnamed'; 
-    });
-}

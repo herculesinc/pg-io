@@ -52,11 +52,13 @@ declare module "pg-io" {
         
         release(action: 'commit')           : Promise<void>;
         release(action: 'rollback')         : Promise<void>;
-        release(action?: string)            : Promise<any>;
+        release()                           : Promise<any>;
 
+        execute<T>(query: SingleResultQuery<T>): Promise<T>
+        execute<T>(query: ListResultQuery<T>): Promise<T[]>
         execute<T>(query: ResultQuery<T>)   : Promise<any>;
         execute(query: Query)               : Promise<void>;
-        execute(queries: Query[])           : Promise<Map<string,any>>;
+        execute(queries: Query[])           : Promise<Map<string, any>>;
         
         constructor(database: Database, options: ConnectionOptions);
         
@@ -77,24 +79,28 @@ declare module "pg-io" {
 
     // QUERY
     // --------------------------------------------------------------------------------------------
-    export interface Query {
+    export type QueryMask = 'list' | 'object';
+
+    export interface QuerySpec {
         text    : string;
         name?   : string;
+    }
+
+    export interface Query extends QuerySpec{
         params? : any;
     }
     
-    export interface ResultQuery<T> extends Query {
-        mask    : string;
+    export interface SingleResultQuery<T> extends Query {
+        mask    : 'object';
         handler?: ResultHandler<T>;
     }
-    
-    export interface OneResultQuery<T> extends ResultQuery<T> {
-        mask    : 'object';
+
+    export interface ListResultQuery<T> extends Query {
+        mask    : 'list';
+        handler?: ResultHandler<T>;
     }
 
-    export interface ListResultQuery<T> extends ResultQuery<T> {
-        mask    : 'list';
-    }
+    export type ResultQuery<T> = SingleResultQuery<T> | ListResultQuery<T>;
     
     // SUPPORTING ENUMS AND INTERFACES
     // --------------------------------------------------------------------------------------------

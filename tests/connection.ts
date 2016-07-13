@@ -2,6 +2,7 @@
 // ================================================================================================
 import * as assert from 'assert';
 import * as pg from './../index';
+import { ListResultQuery, SingleResultQuery } from './../lib/Query';
 import { PgError, ConnectionError, TransactionError, QueryError, ParseError } from './../lib/errors';
 import { User, prepareDatabase, qFetchUserById, qFetchUsersByIdList } from './setup';
 
@@ -22,7 +23,7 @@ describe('Object query tests', function() {
     it('Object query should return a single object', () => {
         return pg.db(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
-                var query = {
+                var query: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
                     mask: 'object',
                     name: 'getUserById'
