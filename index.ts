@@ -1,25 +1,11 @@
 ﻿// IMPORTS
 // ================================================================================================
-import * as pg from 'pg';
-import { ConnectionError } from './lib/errors'
 import { Connection, Options } from './lib/Connection';
+import { Database, Settings} from './lib/Database';
 import { since } from './lib/util';
 
 // INTERFACES
 // ================================================================================================
-export interface Settings {
-    host        : string;
-    port?       : number;
-    user        : string;
-    password    : string;
-    database    : string;
-    poolSize?   : number;
-};
-
-export interface PoolState {
-    size        : number;
-    available   : number;
-}
 
 export interface Configuration {
     cc          : typeof Connection,
@@ -74,54 +60,6 @@ export function db(settings: Settings): Database {
     }
     return db;
 };
-
-// DATABASE CLASS
-// ================================================================================================
-export class Database {
-
-    name    : string;
-    pool    : pg.ClientPool;
-    settings: Settings;
-
-    constructor(settings: Settings) {
-        this.name = settings.database;
-        this.settings = settings;
-        this.pool = pg.pools.getOrCreate(this.settings);
-    }
-
-    connect(options?: Options): Promise<Connection> {
-        options = Object.assign({}, defaults, options);
-        
-        const start = process.hrtime();
-        const logger = config.logger;
-        logger && logger.debug(`Connecting to the database; pool state ${this.getPoolDescription()}`)
-        return new Promise((resolve, reject) => {
-            pg.connect(this.settings, (error, client, done) => {
-                if (error) return reject(new ConnectionError(error));
-                const connection = new config.cc(this, options);
-                connection.inject(client, done)
-        
-                logger && logger.log(`${this.name}::connected`, {
-                    connectionTime  : since(start),
-                    poolSize        : this.pool.getPoolSize(),
-                    poolAvailable   : this.pool.availableObjectsCount()
-                });
-                resolve(connection);
-            });
-        });
-    }
-
-    getPoolState(): PoolState {
-        return {
-            size        : this.pool.getPoolSize(),
-            available   : this.pool.availableObjectsCount()
-        };
-    }
-    
-    getPoolDescription(): string {
-        return `{ size: ${this.pool.getPoolSize()}, available: ${this.pool.availableObjectsCount()} }`;
-    }
-}
 
 // RE-EXPORTS
 // ================================================================================================

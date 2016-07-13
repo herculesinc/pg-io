@@ -20,7 +20,8 @@
     "url": "https://github.com/herculesinc/pg-io.git"
   },
   "dependencies": {
-    "pg": "^4.4.0"
+    "generic-pool": "2.4.x",
+    "pg": "6.0.x"
   },
   "engines": {
     "node": "6.3.x"

@@ -1,9 +1,9 @@
 ﻿// IMPORTS
 // ================================================================================================
-import * as assert from 'assert';
 import * as pg from 'pg';
 
-import { Database, config, Logger } from './../index';
+import { config, Logger } from './../index';
+import { Database } from './Database';
 import { Query, SingleResultQuery, ListResultQuery, isResultQuery, isParametrized, toDbQuery, DbQuery } from './Query';
 import { Collector } from './Collector';
 import { PgError, ConnectionError, TransactionError, QueryError, ParseError } from './errors'
