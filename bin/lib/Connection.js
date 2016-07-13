@@ -11,6 +11,7 @@ class Connection {
     // --------------------------------------------------------------------------------------------
     constructor(client, options) {
         this.client = client;
+        this.service = options.service || 'database';
         this.options = options;
         this.logger = index_1.config.logger;
         if (options.startTransaction) {
@@ -86,8 +87,7 @@ class Connection {
             .then((results) => {
             try {
                 let duration = util_1.since(start);
-                this.logger && this.logger.debug(`Queries executed in ${duration} ms; processing results`);
-                this.logger && this.logger.trace('database', command, duration); // TODO: replace with service name
+                this.logger && this.logger.trace(this.service, command, duration);
                 start = process.hrtime();
                 const flatResults = results.reduce((agg, result) => agg.concat(result), []);
                 if (queries.length !== flatResults.length) {

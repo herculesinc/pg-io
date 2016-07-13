@@ -11,6 +11,7 @@ import { since } from './util';
 // INTERFACES AND ENUMS
 // ================================================================================================
 export interface Options {
+    service?            : string;
     collapseQueries?    : boolean;
     startTransaction?   : boolean;
 }
@@ -27,14 +28,16 @@ const enum State {
 export class Connection {
 
     private client      : Client;
-    protected state     : State;
+    protected service   : string;
     protected options   : Options;
+    protected state     : State;
     protected logger    : Logger;
 
     // CONSTRUCTOR AND INJECTOR
     // --------------------------------------------------------------------------------------------
     constructor(client: Client, options: Options) {
         this.client = client;
+        this.service = options.service || 'database';
         this.options = options;
         this.logger = config.logger;
         if (options.startTransaction) {
@@ -131,8 +134,7 @@ export class Connection {
             .then((results) => {
                 try {
                     let duration = since(start);
-                    this.logger && this.logger.debug(`Queries executed in ${duration} ms; processing results`);
-                    this.logger && this.logger.trace('database', command, duration); // TODO: replace with service name
+                    this.logger && this.logger.trace(this.service, command, duration);
                     start = process.hrtime();
                     
                     const flatResults = results.reduce((agg: any[], result) => agg.concat(result), []);
