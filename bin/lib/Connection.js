@@ -9,8 +9,8 @@ const util_1 = require('./util');
 class Connection {
     // CONSTRUCTOR AND INJECTOR
     // --------------------------------------------------------------------------------------------
-    constructor(database, options) {
-        this.database = database;
+    constructor(client, options) {
+        this.client = client;
         this.options = options;
         this.logger = index_1.config.logger;
         if (options.startTransaction) {
@@ -20,10 +20,6 @@ class Connection {
         else {
             this.state = 1 /* connection */;
         }
-    }
-    inject(client, done) {
-        this.client = client;
-        this.done = done;
     }
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
@@ -57,26 +53,14 @@ class Connection {
         if (this.state === 4 /* released */) {
             return Promise.reject(new errors_1.ConnectionError('Cannot release connection: connection has already been released'));
         }
-        const start = process.hrtime();
         switch (action) {
             case 'commit':
                 this.logger && this.logger.debug('Committing transaction and releasing connection back to the pool');
                 return this.execute(COMMIT_TRANSACTION)
-                    .then(() => {
-                    this.releaseConnection();
-                    const duration = util_1.since(start);
-                    this.logger && this.logger.debug(`Transaction committed in ${duration} ms; pool state: ${this.database.getPoolDescription()}`);
-                    this.logger && this.logger.track(`${this.database.name}::commit`, duration);
-                });
+                    .then(() => this.releaseConnection());
             case 'rollback':
                 this.logger && this.logger.debug('Rolling back transaction and releasing connection back to the pool');
-                return this.rollbackAndRelease()
-                    .then((result) => {
-                    const duration = util_1.since(start);
-                    this.logger && this.logger.debug(`Transaction rolled back in ${duration} ms; pool state: ${this.database.getPoolDescription()}`);
-                    this.logger && this.logger.track(`${this.database.name}::rollback`, duration);
-                    return result;
-                });
+                return this.rollbackAndRelease();
             default:
                 this.logger && this.logger.debug('Releasing connection back to the pool');
                 if (this.inTransaction) {
@@ -84,9 +68,6 @@ class Connection {
                 }
                 else {
                     this.releaseConnection();
-                    const duration = util_1.since(start);
-                    this.logger && this.logger.debug(`Connection released in ${duration} ms; pool state: ${this.database.getPoolDescription()}`);
-                    this.logger && this.logger.track(`${this.database.name}::release`, duration);
                     return Promise.resolve();
                 }
         }
@@ -106,7 +87,7 @@ class Connection {
             try {
                 let duration = util_1.since(start);
                 this.logger && this.logger.debug(`Queries executed in ${duration} ms; processing results`);
-                this.logger && this.logger.trace(this.database.name, command, duration);
+                this.logger && this.logger.trace('database', command, duration); // TODO: replace with service name
                 start = process.hrtime();
                 const flatResults = results.reduce((agg, result) => agg.concat(result), []);
                 if (queries.length !== flatResults.length) {
@@ -161,7 +142,6 @@ class Connection {
                         reject(reason);
                     }
                     else {
-                        this.state = 1 /* connection */;
                         this.releaseConnection();
                         resolve();
                     }
@@ -171,7 +151,8 @@ class Connection {
     }
     releaseConnection(error) {
         this.state = 4 /* released */;
-        this.done(error);
+        this.client.release(error);
+        this.client = undefined;
     }
     // PRIVATE METHODS
     // --------------------------------------------------------------------------------------------

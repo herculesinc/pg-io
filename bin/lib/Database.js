@@ -23,8 +23,7 @@ class Database {
             this.pool.connect((error, client, done) => {
                 if (error)
                     return reject(new errors_1.ConnectionError(error));
-                const connection = new index_1.config.cc(this, options);
-                connection.inject(client, done);
+                const connection = new index_1.config.cc(client, options);
                 logger && logger.log(`${this.name}::connected`, {
                     connectionTime: util_1.since(start),
                     poolSize: this.pool.pool.getPoolSize(),

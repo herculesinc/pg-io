@@ -45,8 +45,7 @@ export class Database {
         return new Promise((resolve, reject) => {
             this.pool.connect((error, client, done) => {
                 if (error) return reject(new ConnectionError(error));
-                const connection = new config.cc(this, options);
-                connection.inject(client, done)
+                const connection = new config.cc(client, options);
     
                 logger && logger.log(`${this.name}::connected`, {
                     connectionTime  : since(start),

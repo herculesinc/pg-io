@@ -1,10 +1,9 @@
 ﻿// IMPORTS
 // ================================================================================================
-import * as pg from 'pg';
+import { Client, QueryResult } from 'pg';
 
 import { config, Logger } from './../index';
-import { Database } from './Database';
-import { Query, SingleResultQuery, ListResultQuery, isResultQuery, isParametrized, toDbQuery, DbQuery } from './Query';
+import { Query, SingleResultQuery, ListResultQuery, isParametrized, toDbQuery, DbQuery } from './Query';
 import { Collector } from './Collector';
 import { PgError, ConnectionError, TransactionError, QueryError, ParseError } from './errors'
 import { since } from './util';
@@ -27,17 +26,15 @@ const enum State {
 // ================================================================================================
 export class Connection {
 
+    private client      : Client;
     protected state     : State;
     protected options   : Options;
-    protected database  : Database;
     protected logger    : Logger;
-    private client      : pg.Client;
-    private done        : (error?: Error) => void;
 
     // CONSTRUCTOR AND INJECTOR
     // --------------------------------------------------------------------------------------------
-    constructor(database: Database, options: Options) {
-        this.database = database;
+    constructor(client: Client, options: Options) {
+        this.client = client;
         this.options = options;
         this.logger = config.logger;
         if (options.startTransaction) {
@@ -47,11 +44,6 @@ export class Connection {
         else{
             this.state = State.connection;
         }
-    }
-    
-    inject(client: pg.Client, done: (error?: Error) => void) {
-        this.client = client;
-        this.done = done;
     }
 
     // PUBLIC ACCESSORS
@@ -95,26 +87,14 @@ export class Connection {
                 new ConnectionError('Cannot release connection: connection has already been released'));
         }
         
-        const start = process.hrtime();
         switch (action) {
             case 'commit':
                 this.logger && this.logger.debug('Committing transaction and releasing connection back to the pool');
                 return this.execute(COMMIT_TRANSACTION)
-                    .then(() => { 
-                        this.releaseConnection();
-                        const duration = since(start);
-                        this.logger && this.logger.debug(`Transaction committed in ${duration} ms; pool state: ${this.database.getPoolDescription()}`);
-                        this.logger && this.logger.track(`${this.database.name}::commit`, duration);
-                    });
+                    .then(() => this.releaseConnection());
             case 'rollback':
                 this.logger && this.logger.debug('Rolling back transaction and releasing connection back to the pool');
-                return this.rollbackAndRelease()
-                    .then((result) => {
-                        const duration = since(start);
-                        this.logger && this.logger.debug(`Transaction rolled back in ${duration} ms; pool state: ${this.database.getPoolDescription()}`);
-                        this.logger && this.logger.track(`${this.database.name}::rollback`, duration);
-                        return result;
-                    });
+                return this.rollbackAndRelease();
             default:
                 this.logger && this.logger.debug('Releasing connection back to the pool');
                 if (this.inTransaction) {
@@ -123,9 +103,6 @@ export class Connection {
                 }
                 else {
                     this.releaseConnection();
-                    const duration = since(start);
-                    this.logger && this.logger.debug(`Connection released in ${duration} ms; pool state: ${this.database.getPoolDescription()}`);
-                    this.logger && this.logger.track(`${this.database.name}::release`, duration);
                     return Promise.resolve();
                 }
         }
@@ -155,7 +132,7 @@ export class Connection {
                 try {
                     let duration = since(start);
                     this.logger && this.logger.debug(`Queries executed in ${duration} ms; processing results`);
-                    this.logger && this.logger.trace(this.database.name, command, duration);
+                    this.logger && this.logger.trace('database', command, duration); // TODO: replace with service name
                     start = process.hrtime();
                     
                     const flatResults = results.reduce((agg: any[], result) => agg.concat(result), []);
@@ -187,7 +164,7 @@ export class Connection {
 
     // PROTECTED METHODS
     // --------------------------------------------------------------------------------------------
-    protected processQueryResult(query: any, result: pg.QueryResult): any[] {
+    protected processQueryResult(query: any, result: QueryResult): any[] {
         
         var processedResult: any[];
         if (query.handler && typeof query.handler.parse === 'function') {
@@ -216,7 +193,6 @@ export class Connection {
                         reject(reason);
                     }
                     else {
-                        this.state = State.connection;
                         this.releaseConnection();
                         resolve();
                     }
@@ -227,7 +203,8 @@ export class Connection {
     
     protected releaseConnection(error?: any) {
         this.state = State.released;
-        this.done(error);
+        this.client.release(error);
+        this.client = undefined;
     }
 
     // PRIVATE METHODS
