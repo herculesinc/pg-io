@@ -1,84 +1,82 @@
 "use strict";
-const index_1 = require('./../index');
 const Query_1 = require('./Query');
 const Collector_1 = require('./Collector');
 const errors_1 = require('./errors');
+const defaults_1 = require('./defaults');
 const util_1 = require('./util');
-// CONNECTION CLASS DEFINITION
+// SESSION CLASS DEFINITION
 // ================================================================================================
-class Connection {
-    // CONSTRUCTOR AND INJECTOR
+class Session {
+    // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     constructor(client, options) {
+        if (!client)
+            throw new errors_1.ConnectionError('Cannot create a connection session: client is undefined');
         this.client = client;
-        this.service = options.service || 'database';
-        this.options = options;
-        this.logger = index_1.config.logger;
-        if (options.startTransaction) {
+        this.options = Object.assign({}, defaults_1.defaults.session, options);
+        this.logger = defaults_1.defaults.logger;
+        if (this.options.startTransaction) {
             this.logger && this.logger.debug(`Starting database transaction in lazy mode`);
-            this.state = 3 /* transactionPending */;
-        }
-        else {
-            this.state = 1 /* connection */;
+            this.transaction = 1 /* pending */;
         }
     }
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
     get inTransaction() {
-        return (this.state === 2 /* transaction */ || this.state === 3 /* transactionPending */);
+        return (this.transaction > 0);
     }
     get isActive() {
-        return (this.state !== 4 /* released */);
+        return (this.client != undefined);
     }
     // LIFECYCLE METHODS
     // --------------------------------------------------------------------------------------------
     startTransaction(lazy = true) {
         if (this.isActive === false) {
-            return Promise.reject(new errors_1.ConnectionError('Cannot start transaction: connection is not currently active'));
+            return Promise.reject(new errors_1.ConnectionError('Cannot start transaction: session is not currently active'));
         }
         if (this.inTransaction) {
-            return Promise.reject(new errors_1.TransactionError('Cannot start transaction: connection is already in transaction'));
+            return Promise.reject(new errors_1.TransactionError('Cannot start transaction: session is already in transaction'));
         }
         this.logger && this.logger.debug(`Starting database transaction in ${lazy ? 'lazy' : 'eager'} mode`);
         if (lazy) {
-            this.state = 3 /* transactionPending */;
+            this.transaction = 1 /* pending */;
             return Promise.resolve();
         }
         else {
             return this.execute(BEGIN_TRANSACTION).then(() => {
-                this.state = 2 /* transaction */;
+                this.transaction = 2 /* active */;
             });
         }
     }
     release(action) {
-        if (this.state === 4 /* released */) {
-            return Promise.reject(new errors_1.ConnectionError('Cannot release connection: connection has already been released'));
+        if (!this.isActive) {
+            return Promise.reject(new errors_1.ConnectionError('Cannot release session: session has already been released'));
         }
         switch (action) {
             case 'commit':
-                this.logger && this.logger.debug('Committing transaction and releasing connection back to the pool');
+                this.logger && this.logger.debug('Committing transaction and releasing session back to the pool');
                 return this.execute(COMMIT_TRANSACTION)
-                    .then(() => this.releaseConnection());
+                    .then(() => this.closeSession());
             case 'rollback':
-                this.logger && this.logger.debug('Rolling back transaction and releasing connection back to the pool');
+                this.logger && this.logger.debug('Rolling back transaction and releasing session back to the pool');
                 return this.rollbackAndRelease();
             default:
-                this.logger && this.logger.debug('Releasing connection back to the pool');
+                this.logger && this.logger.debug('Releasing session back to the pool');
                 if (this.inTransaction) {
-                    return this.rollbackAndRelease(new errors_1.TransactionError('Uncommitted transaction detected during connection release'));
+                    return this.rollbackAndRelease(new errors_1.TransactionError('Uncommitted transaction detected during session release'));
                 }
                 else {
-                    this.releaseConnection();
+                    this.closeSession();
                     return Promise.resolve();
                 }
         }
     }
     execute(queryOrQueries) {
         if (this.isActive === false) {
-            return Promise.reject(new errors_1.ConnectionError('Cannot execute queries: connection has been released'));
+            return Promise.reject(new errors_1.ConnectionError('Cannot execute queries: session has been released'));
         }
         var start = process.hrtime();
-        const { queries, command, state } = this.buildQueryList(queryOrQueries);
+        const { queries, command, transaction } = this.buildQueryList(queryOrQueries);
         this.logger && this.logger.debug(`Executing ${queries.length} queries: [${command}]`);
         return Promise.resolve()
             .then(() => this.buildDbQueries(queries))
@@ -87,7 +85,7 @@ class Connection {
             .then((results) => {
             try {
                 let duration = util_1.since(start);
-                this.logger && this.logger.trace(this.service, command, duration);
+                this.logger && this.logger.trace('database', command, duration); // TODO: get database name
                 start = process.hrtime();
                 const flatResults = results.reduce((agg, result) => agg.concat(result), []);
                 if (queries.length !== flatResults.length) {
@@ -98,7 +96,7 @@ class Connection {
                     let query = queries[i];
                     collector.addResult(query, this.processQueryResult(query, flatResults[i]));
                 }
-                this.state = state;
+                this.transaction = transaction;
                 duration = util_1.since(start);
                 this.logger && this.logger.debug(`Query results processed in ${duration} ms`);
                 return collector.getResults();
@@ -133,24 +131,24 @@ class Connection {
             this.client.query(ROLLBACK_TRANSACTION.text, (error, results) => {
                 if (error) {
                     error = new errors_1.QueryError(error);
-                    this.releaseConnection(error);
+                    this.closeSession(error);
                     reason ? reject(reason) : reject(error);
                 }
                 else {
                     if (reason) {
-                        this.releaseConnection();
+                        this.closeSession();
                         reject(reason);
                     }
                     else {
-                        this.releaseConnection();
+                        this.closeSession();
                         resolve();
                     }
                 }
             });
         });
     }
-    releaseConnection(error) {
-        this.state = 4 /* released */;
+    closeSession(error) {
+        this.transaction = undefined;
         this.client.release(error);
         this.client = undefined;
     }
@@ -161,10 +159,10 @@ class Connection {
             ? (Array.isArray(queryOrQueries) ? queryOrQueries : [queryOrQueries])
             : [];
         // if transaction is pending
-        let state = this.state;
-        if (this.state === 3 /* transactionPending */ && queries.length > 0) {
+        let transaction = this.transaction;
+        if (transaction === 1 /* pending */ && queries.length > 0) {
             queries.unshift(BEGIN_TRANSACTION);
-            state = 2 /* transaction */;
+            transaction = 2 /* active */;
         }
         if (queries.length === 2 && queries[0] === BEGIN_TRANSACTION) {
             if (queries[1] === COMMIT_TRANSACTION || queries[1] === ROLLBACK_TRANSACTION) {
@@ -176,7 +174,7 @@ class Connection {
             qNames.push(query.name ? query.name : 'unnamed');
         }
         const command = qNames.join(', ');
-        return { queries, command, state };
+        return { queries, command, transaction };
     }
     buildDbQueries(queries) {
         const dbQueries = [];
@@ -202,7 +200,7 @@ class Connection {
         });
     }
 }
-exports.Connection = Connection;
+exports.Session = Session;
 // COMMON QUERIES
 // ================================================================================================
 const BEGIN_TRANSACTION = {
@@ -217,4 +215,4 @@ const ROLLBACK_TRANSACTION = {
     name: 'qRollbackTransaction',
     text: 'ROLLBACK;'
 };
-//# sourceMappingURL=Connection.js.map
+//# sourceMappingURL=Session.js.map

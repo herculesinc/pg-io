@@ -1,6 +1,6 @@
 ﻿// IMPORTS
 // ================================================================================================
-import { Connection } from './../lib/Connection';
+import { Session } from './../lib/Session';
 import { Query, ResultQuery, SingleResultQuery, ListResultQuery } from './../lib/Query';
 
 // INTERFACES
@@ -72,7 +72,7 @@ export class qFetchUsersByIdList implements ListResultQuery<User> {
     get name(): string { return (<any> this).constructor.name; }
 }
 
-export function prepareDatabase(conn: Connection): Promise<any> {
+export function prepareDatabase(conn: Session): Promise<any> {
     return conn.execute([{ text: `DROP TABLE IF EXISTS tmp_users;` },
         {
             text: `SELECT * INTO TEMPORARY tmp_users

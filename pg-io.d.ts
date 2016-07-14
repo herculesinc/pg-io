@@ -8,28 +8,43 @@ declare module "pg-io" {
         user        : string;
         password    : string;
         database    : string;
-        poolSize?   : number;
-    }
-
-    export interface Configuration {
-        connectionConstructor: typeof Connection;
-        logger: Logger;
     }
     
+    export interface PoolOptions {
+        maxSize?        : number;
+        idleTimeout?    : number;
+        reapInterval?   : number;
+    }
+
+    export interface DatabaseOptions {
+        application?: string;
+        connection  : ConnectionSettings;
+        pool?       : PoolOptions;
+    }
+
+    export interface Defaults {
+        application         : string;
+        SessionConstructor  : typeof Session;
+        connection          : ConnectionSettings;
+        session             : SessionOptions;
+        pool                : PoolOptions;
+        logger              : Logger;
+    }
+
     export interface Utilities {
         since(start: number[]): number;
     }
 
-    export function db(settings: ConnectionSettings): Database;
-    export const defaults: ConnectionOptions;
-    export const config: Configuration;
+    export function db(options: DatabaseOptions): Database;
+    export const defaults: Defaults;
     export const utils: Utilities;
 
     // DATABASE
     // --------------------------------------------------------------------------------------------
-    export interface ConnectionOptions {
+    export interface SessionOptions {
         collapseQueries?    : boolean;
         startTransaction?   : boolean;
+        logQueryText?       : boolean;
     }
 
     export interface PoolState {
@@ -38,37 +53,38 @@ declare module "pg-io" {
     }
 
     export interface Database {
-        connect(options?: ConnectionOptions): Promise<Connection>;
+        connect(options?: SessionOptions): Promise<Session>;
+        close(): Promise<any>;
+
         getPoolState(): PoolState;
     }
 
-    // CONNECTION
+    // SESSION
     // --------------------------------------------------------------------------------------------
-    export class Connection {
+    export class Session {
         isActive        : boolean;
         inTransaction   : boolean;
         
-        startTransaction(lazy?: boolean)    : Promise<void>;
+        startTransaction(lazy?: boolean)        : Promise<void>;
         
-        release(action: 'commit')           : Promise<void>;
-        release(action: 'rollback')         : Promise<void>;
-        release()                           : Promise<any>;
+        release(action: 'commit')               : Promise<void>;
+        release(action: 'rollback')             : Promise<void>;
+        release()                               : Promise<any>;
 
-        execute<T>(query: SingleResultQuery<T>): Promise<T>
-        execute<T>(query: ListResultQuery<T>): Promise<T[]>
-        execute<T>(query: ResultQuery<T>)   : Promise<any>;
-        execute(query: Query)               : Promise<void>;
-        execute(queries: Query[])           : Promise<Map<string, any>>;
+        execute<T>(query: SingleResultQuery<T>) : Promise<T>
+        execute<T>(query: ListResultQuery<T>)   : Promise<T[]>
+        execute<T>(query: ResultQuery<T>)       : Promise<any>;
+        execute(query: Query)                   : Promise<void>;
+        execute(queries: Query[])               : Promise<Map<string, any>>;
         
-        constructor(database: Database, options: ConnectionOptions);
+        constructor(client: any, options?: SessionOptions);
         
-        protected state: ConnectionState;
-        protected options: ConnectionOptions;
-        protected database: Database;
+        protected options: SessionOptions;
+        protected transaction: TransactionState;
         protected processQueryResult(query: Query, result: DbQueryResult): any[];
         protected rollbackAndRelease(reason?: any): Promise<any>;
         protected releaseConnection(error?: any);
-        protected log(message: string);
+        protected logger: Logger;
     }
 
     // RESULT HANDLER
@@ -104,11 +120,8 @@ declare module "pg-io" {
     
     // SUPPORTING ENUMS AND INTERFACES
     // --------------------------------------------------------------------------------------------
-    const enum ConnectionState {
-        connection = 1,
-        transaction,
-        transactionPending,
-        released
+    const enum TransactionState {
+        pending = 1, active
     }
     
     interface DbQueryResult {

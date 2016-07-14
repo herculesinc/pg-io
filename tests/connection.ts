@@ -1097,7 +1097,7 @@ describe('Error condition tests', function () {
     
     it('Attempt to connection to a non-existing database should throw an error', () => {
         var settings1 = JSON.parse(JSON.stringify(settings));
-        settings1.database = 'invalid';
+        settings1.connection.database = 'invalid';
         var database = pg.db(settings1);
         return database.connect().then((connection) => {
             assert.fail();

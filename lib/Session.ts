@@ -2,61 +2,55 @@
 // ================================================================================================
 import { Client, QueryResult } from 'pg';
 
-import { config, Logger } from './../index';
 import { Query, SingleResultQuery, ListResultQuery, isParametrized, toDbQuery, DbQuery } from './Query';
 import { Collector } from './Collector';
-import { PgError, ConnectionError, TransactionError, QueryError, ParseError } from './errors'
-import { since } from './util';
+import { PgError, ConnectionError, TransactionError, QueryError, ParseError } from './errors';
+import { defaults } from './defaults';
+import { since, Logger } from './util';
 
 // INTERFACES AND ENUMS
 // ================================================================================================
-export interface Options {
-    service?            : string;
-    collapseQueries?    : boolean;
+export interface SessionOptions {
     startTransaction?   : boolean;
+    collapseQueries?    : boolean;
+    logQueryText?       : boolean;
 }
 
-const enum State {
-    connection = 1,
-    transaction,
-    transactionPending,
-    released
+const enum TransactionState {
+    pending = 1, active
 }
 
-// CONNECTION CLASS DEFINITION
+// SESSION CLASS DEFINITION
 // ================================================================================================
-export class Connection {
+export class Session {
 
-    private client      : Client;
-    protected service   : string;
-    protected options   : Options;
-    protected state     : State;
-    protected logger    : Logger;
+    client      : Client;
+    options     : SessionOptions;
+    transaction : TransactionState;
+    logger      : Logger;
 
-    // CONSTRUCTOR AND INJECTOR
+    // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    constructor(client: Client, options: Options) {
+    constructor(client: Client, options?: SessionOptions) {
+        if (!client) throw new ConnectionError('Cannot create a connection session: client is undefined');
         this.client = client;
-        this.service = options.service || 'database';
-        this.options = options;
-        this.logger = config.logger;
-        if (options.startTransaction) {
+        this.options = Object.assign({}, defaults.session, options);
+        this.logger = defaults.logger;
+
+        if (this.options.startTransaction) {
             this.logger && this.logger.debug(`Starting database transaction in lazy mode`)
-            this.state = State.transactionPending;
-        }
-        else{
-            this.state = State.connection;
+            this.transaction = TransactionState.pending;
         }
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
     get inTransaction(): boolean {
-        return (this.state === State.transaction || this.state === State.transactionPending);
+        return (this.transaction > 0);
     }
 
     get isActive(): boolean {
-        return (this.state !== State.released);
+        return (this.client != undefined);
     }
 
     // LIFECYCLE METHODS
@@ -64,48 +58,48 @@ export class Connection {
     startTransaction(lazy = true): Promise<void> {
         if (this.isActive === false) {
             return Promise.reject(
-                new ConnectionError('Cannot start transaction: connection is not currently active'));
+                new ConnectionError('Cannot start transaction: session is not currently active'));
         }
         
         if (this.inTransaction) {
             return Promise.reject(
-                new TransactionError('Cannot start transaction: connection is already in transaction'));
+                new TransactionError('Cannot start transaction: session is already in transaction'));
         }
         
         this.logger && this.logger.debug(`Starting database transaction in ${lazy ? 'lazy' : 'eager'} mode`);
         if (lazy) {
-            this.state = State.transactionPending;
+            this.transaction = TransactionState.pending;
             return Promise.resolve();
         }
         else {
             return this.execute(BEGIN_TRANSACTION).then(() => {
-                this.state = State.transaction;
+                this.transaction = TransactionState.active;
             });
         }
     }
 
     release(action?: 'commit' | 'rollback'): Promise<any> {
-        if (this.state === State.released) {
+        if (!this.isActive) {
             return Promise.reject(
-                new ConnectionError('Cannot release connection: connection has already been released'));
+                new ConnectionError('Cannot release session: session has already been released'));
         }
         
         switch (action) {
             case 'commit':
-                this.logger && this.logger.debug('Committing transaction and releasing connection back to the pool');
+                this.logger && this.logger.debug('Committing transaction and releasing session back to the pool');
                 return this.execute(COMMIT_TRANSACTION)
-                    .then(() => this.releaseConnection());
+                    .then(() => this.closeSession());
             case 'rollback':
-                this.logger && this.logger.debug('Rolling back transaction and releasing connection back to the pool');
+                this.logger && this.logger.debug('Rolling back transaction and releasing session back to the pool');
                 return this.rollbackAndRelease();
             default:
-                this.logger && this.logger.debug('Releasing connection back to the pool');
+                this.logger && this.logger.debug('Releasing session back to the pool');
                 if (this.inTransaction) {
                     return this.rollbackAndRelease(
-                        new TransactionError('Uncommitted transaction detected during connection release'));
+                        new TransactionError('Uncommitted transaction detected during session release'));
                 }
                 else {
-                    this.releaseConnection();
+                    this.closeSession();
                     return Promise.resolve();
                 }
         }
@@ -120,11 +114,11 @@ export class Connection {
     execute(queryOrQueries: Query | Query[]): Promise<any> {
         if (this.isActive === false) {
             return Promise.reject(
-                new ConnectionError('Cannot execute queries: connection has been released'));
+                new ConnectionError('Cannot execute queries: session has been released'));
         }
 
         var start = process.hrtime();
-        const { queries, command, state } = this.buildQueryList(queryOrQueries);
+        const { queries, command, transaction } = this.buildQueryList(queryOrQueries);
         this.logger && this.logger.debug(`Executing ${queries.length} queries: [${command}]`);
         
         return Promise.resolve()
@@ -134,7 +128,7 @@ export class Connection {
             .then((results) => {
                 try {
                     let duration = since(start);
-                    this.logger && this.logger.trace(this.service, command, duration);
+                    this.logger && this.logger.trace('database', command, duration); // TODO: get database name
                     start = process.hrtime();
                     
                     const flatResults = results.reduce((agg: any[], result) => agg.concat(result), []);
@@ -148,7 +142,7 @@ export class Connection {
                         collector.addResult(query, this.processQueryResult(query, flatResults[i]));
                     }
 
-                    this.state = state;
+                    this.transaction = transaction;
                     duration = since(start);
                     this.logger && this.logger.debug(`Query results processed in ${duration} ms`);
                     return collector.getResults();
@@ -186,16 +180,16 @@ export class Connection {
             this.client.query(ROLLBACK_TRANSACTION.text, (error, results) => {
                 if (error) {
                     error = new QueryError(error);
-                    this.releaseConnection(error);
+                    this.closeSession(error);
                     reason ? reject(reason) : reject(error);
                 }
                 else {
                     if (reason) {
-                        this.releaseConnection();
+                        this.closeSession();
                         reject(reason);
                     }
                     else {
-                        this.releaseConnection();
+                        this.closeSession();
                         resolve();
                     }
                 }
@@ -203,24 +197,24 @@ export class Connection {
         });
     }
     
-    protected releaseConnection(error?: any) {
-        this.state = State.released;
+    protected closeSession(error?: any) {
+        this.transaction = undefined;
         this.client.release(error);
         this.client = undefined;
     }
 
     // PRIVATE METHODS
     // --------------------------------------------------------------------------------------------
-    private buildQueryList(queryOrQueries: Query | Query[]): { queries: Query[], command: string, state: State } {
+    private buildQueryList(queryOrQueries: Query | Query[]): { queries: Query[], command: string, transaction: TransactionState } {
         let queries = queryOrQueries 
             ? (Array.isArray(queryOrQueries) ? queryOrQueries : [queryOrQueries])
             : [];
 
         // if transaction is pending
-        let state = this.state;
-        if (this.state === State.transactionPending && queries.length > 0) {
+        let transaction = this.transaction;
+        if (transaction === TransactionState.pending && queries.length > 0) {
             queries.unshift(BEGIN_TRANSACTION);
-            state = State.transaction;
+            transaction = TransactionState.active;
         }
 
         if (queries.length === 2 && queries[0] === BEGIN_TRANSACTION) {
@@ -235,7 +229,7 @@ export class Connection {
         }
         const command = qNames.join(', ');
 
-        return { queries, command, state };
+        return { queries, command, transaction };
     }
     
     private buildDbQueries(queries: Query[]): DbQuery[] {
