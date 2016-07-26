@@ -11,7 +11,7 @@ const gutil = require('gulp-util');
 // ================================================================================================
 // delete bin folder
 gulp.task('clean', function(cb) {
-  del(['bin']).then(() => { cb(); });
+  del(['bin']).then(paths => cb());
 });
 
 // compile TypeScript files
@@ -26,6 +26,7 @@ gulp.task('compile', ['clean'], function (cb) {
 // build the project
 gulp.task('build', ['compile'], function (cb) {
   gulp.src('./package.json').pipe(gulp.dest('./bin'));
+  gulp.src('./pg-io.d.ts').pipe(gulp.dest('./bin'));
   gulp.src('./.settings/.npmignore').pipe(gulp.dest('./bin'));
   gulp.src('./README.md').pipe(gulp.dest('./bin'));
   cb();

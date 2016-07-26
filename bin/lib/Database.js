@@ -6,21 +6,28 @@ const generic_pool_1 = require('generic-pool');
 const errors_1 = require('./errors');
 const defaults_1 = require('./defaults');
 const util_1 = require('./util');
+// MODULE VARIABLES
+// ================================================================================================
+const ERROR_EVENT = 'error';
 // DATABASE CLASS
 // ================================================================================================
 class Database {
-    constructor(settings) {
-        //this.name = settings.database;
-        this.logger = defaults_1.defaults.logger;
-        this.Session = defaults_1.defaults.SessionConstructor;
-        // 
-        this.settings = Object.assign({}, defaults_1.defaults.connection, settings.connection);
+    constructor(options, logger) {
+        if (!options)
+            throw TypeError('Cannot create a Database: options are undefined');
+        if (!options.connection)
+            throw TypeError('Cannot create a Database: connection settings are undefined');
+        // set basic properties
+        this.name = options.name || defaults_1.defaults.name;
+        this.Session = defaults_1.defaults.SessionCtr;
+        this.logger = logger;
         // initialize client poool
-        const poolOptions = Object.assign({}, defaults_1.defaults.pool, settings.pool);
-        this.pool = new generic_pool_1.Pool(new ClientFactory(this, poolOptions));
+        const connectionSettings = Object.assign({}, defaults_1.defaults.connection, options.connection);
+        const poolOptions = Object.assign({}, defaults_1.defaults.pool, options.pool);
+        this.pool = new generic_pool_1.Pool(new ClientFactory(this, connectionSettings, poolOptions));
     }
     connect(options) {
-        options = Object.assign({}, defaults_1.defaults.connection, options);
+        options = Object.assign({}, defaults_1.defaults.session, options);
         const start = process.hrtime();
         this.logger && this.logger.debug(`Connecting to the database; pool state ${this.getPoolDescription()}`);
         return new Promise((resolve, reject) => {
@@ -38,13 +45,14 @@ class Database {
                         this.pool.release(client);
                     }
                 };
-                const connection = new this.Session(client, options);
+                const session = new this.Session(client, options, this.logger);
                 this.logger && this.logger.log(`${this.name}::connected`, {
                     connectionTime: util_1.since(start),
                     poolSize: this.pool.getPoolSize(),
                     poolAvailable: this.pool.availableObjectsCount()
                 });
-                resolve(connection);
+                // TODO: fire connected event
+                resolve(session);
             });
         });
     }
@@ -72,8 +80,9 @@ exports.Database = Database;
 // CLIENT FACTORY CLASS
 // ================================================================================================
 class ClientFactory {
-    constructor(database, options) {
+    constructor(database, settings, options) {
         this.database = database;
+        this.settings = settings;
         if (options) {
             this.min = 0;
             this.max = options.maxSize;
@@ -83,10 +92,10 @@ class ClientFactory {
         }
     }
     create(callback) {
-        const client = new pg_1.Client(this.database.settings);
+        const client = new pg_1.Client(this.settings);
         client.on('error', error => {
             this.database.pool.destroy(client);
-            // TODO: emit connection error
+            // TODO: emit error event
         });
         client.connect(error => callback(error, error ? undefined : client));
     }

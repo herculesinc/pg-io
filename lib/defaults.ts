@@ -7,19 +7,18 @@ import { Logger } from './util';
 // INTERFACES
 // ================================================================================================
 export interface Defaults {
-    application         : string;
-    SessionConstructor  : typeof Session;
+    name                : string;
+    SessionCtr          : typeof Session;
     connection          : ConnectionSettings;
     session             : SessionOptions;
     pool                : PoolOptions;
-    logger              : Logger;
 }
 
 // DEFAULTS
 // ================================================================================================
 export const defaults: Defaults = {
-    application         : undefined,
-    SessionConstructor  : Session,
+    name                : 'database',
+    SessionCtr          : Session,
     connection: {
         host            : undefined,
         port            : 5432,
@@ -36,6 +35,5 @@ export const defaults: Defaults = {
         maxSize         : 20,
         idleTimeout     : 30000,
         reapInterval    : 1000
-    },
-    logger              : undefined
+    }
 };

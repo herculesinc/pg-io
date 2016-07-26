@@ -1,7 +1,7 @@
 ﻿// IMPORTS
 // ================================================================================================
 import * as assert from 'assert';
-import * as pg from './../index';
+import { Database } from './../index';
 import { ListResultQuery, SingleResultQuery } from './../lib/Query';
 import { PgError, ConnectionError, TransactionError, QueryError, ParseError } from './../lib/errors';
 import { User, prepareDatabase, qFetchUserById, qFetchUsersByIdList } from './setup';
@@ -12,7 +12,7 @@ import { settings } from './settings';
 describe('Object query tests', function() {
     
     it('Object query should return a single object', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
@@ -31,7 +31,7 @@ describe('Object query tests', function() {
     });
     
     it('Object query should return undefined on no rows', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
             var query = {
                     text: 'SELECT * FROM tmp_users WHERE id = 0;',
@@ -47,7 +47,7 @@ describe('Object query tests', function() {
     });
     
     it('Multiple object queries should produce a Map of objects', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query1 = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
@@ -73,7 +73,7 @@ describe('Object query tests', function() {
     });
     
     it('Multiple object queries with the same name should produce a Map with a single key', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query1 = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
@@ -105,7 +105,7 @@ describe('Object query tests', function() {
     });
     
     it('Unnamed object queries should aggregate into undefined key', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query1 = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 1;',
@@ -137,7 +137,7 @@ describe('Object query tests', function() {
     });
     
     it('Multiple object queries should not produce an array with holes', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query1 = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
@@ -169,7 +169,7 @@ describe('Object query tests', function() {
     });
     
     it('Object query with a handler should be parsed using custom parsing method', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 1;',
@@ -187,7 +187,7 @@ describe('Object query tests', function() {
     });
     
     it('Multiple object queries with a handler should be parsed using custom parsing method', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query1 = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 1;',
@@ -221,7 +221,7 @@ describe('Object query tests', function() {
 describe('List query tests', function () {
     
     it('List query should return an array of objects', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (1, 3);',
@@ -240,7 +240,7 @@ describe('List query tests', function () {
     });
 
     it('List query should return an empty array on no rows', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (0);',
@@ -255,7 +255,7 @@ describe('List query tests', function () {
     });
 
     it('Multiple list queries should produce a Map of arrays', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query1 = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (1, 2);',
@@ -287,7 +287,7 @@ describe('List query tests', function () {
     });
     
     it('Multiple list queries with the same name should produce a Map with a single key', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query1 = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (1, 2);',
@@ -319,7 +319,7 @@ describe('List query tests', function () {
     });
     
     it('Multiple list queries with the same name should produce an array for every query', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query1 = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (1, 2);',
@@ -359,7 +359,7 @@ describe('List query tests', function () {
     });
 
     it('Unnamed list queries should aggregte into undefined key', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query1 = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (1, 2);',
@@ -389,7 +389,7 @@ describe('List query tests', function () {
     });
 
     it('List query with a handler should be parsed using custom parsing mehtod', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query = {
                     text: 'SELECT id, username FROM tmp_users WHERE id IN (1,2);',
@@ -414,7 +414,7 @@ describe('List query tests', function () {
 describe('Non-result query tests', function () {
 
     it('A non-result query should produce no results', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query = {
                     text: `UPDATE tmp_users SET username = 'irakliy' WHERE username = 'irakliy';`
@@ -427,7 +427,7 @@ describe('Non-result query tests', function () {
     });
 
     it('Multiple non-result queries should produce no results', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query = {
                     text: `UPDATE tmp_users SET username = 'irakliy' WHERE username = 'irakliy';`
@@ -445,7 +445,7 @@ describe('Non-result query tests', function () {
 describe('Mixed query tests', function () {
 
     it('Multiple mixed queries should produce a Map of results', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query1 = {
                     text: 'SELECT * FROM tmp_users WHERE id = 2;',
@@ -477,7 +477,7 @@ describe('Mixed query tests', function () {
     });
 
     it('Unnamed mixed queries should aggregate into undefined key', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query1 = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 1;',
@@ -514,7 +514,7 @@ describe('Mixed query tests', function () {
     });
     
     it('Unnamed non-result queries should not produce holes in result array', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query1 = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 1;',
@@ -560,7 +560,7 @@ describe('Mixed query tests', function () {
 describe('Parametrized query tests', function () {
 
     it('Object query parametrized with number should retrive correct row', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query = {
                     text: 'SELECT * FROM tmp_users WHERE id = {{id}};',
@@ -579,7 +579,7 @@ describe('Parametrized query tests', function () {
     });
 
     it('Object query parametrized with string should retrive correct row', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query = {
                     text: 'SELECT * FROM tmp_users WHERE username = {{username}};',
@@ -598,7 +598,7 @@ describe('Parametrized query tests', function () {
     });
 
     it('Object query parametrized with unsafe string should retrive correct row', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query = {
                     text: 'SELECT * FROM tmp_users WHERE username = {{username}};',
@@ -617,7 +617,7 @@ describe('Parametrized query tests', function () {
     });
     
     it('Mix of parametrized and non-parametrized queries should return correct result map', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query1 = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
@@ -670,7 +670,7 @@ describe('Parametrized query tests', function () {
     });
     
     it('Two parametrized queries in a row should produce correct result', () => {
-        return pg.db(settings).connect().then((dao) => {
+        return new Database(settings).connect().then((dao) => {
             return prepareDatabase(dao).then(() => {
                 var query1 = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
@@ -731,7 +731,7 @@ describe('Parametrized query tests', function () {
 describe('Connection lifecycle tests', function () {
 
     it('Releasing a connection should return it to the connection pool', () => {
-        var database = pg.db(settings);
+        var database = new Database(settings);
         assert.strictEqual(database.getPoolState().size, 1);
         assert.strictEqual(database.getPoolState().available, 1);
         
@@ -751,7 +751,7 @@ describe('Connection lifecycle tests', function () {
     });
     
     it('Starting a lazy transaction should put connection into Transaction state', () => {
-        var database = pg.db(settings);
+        var database = new Database(settings);
         return database.connect().then((connection) => {
             assert.strictEqual(connection.inTransaction, false);
             return prepareDatabase(connection).then(()=> {
@@ -768,7 +768,7 @@ describe('Connection lifecycle tests', function () {
     });
         
     it('Starting an eager transaction should put connection into Transaction state', () => {
-        var database = pg.db(settings);
+        var database = new Database(settings);
         return database.connect().then((connection) => {
             return prepareDatabase(connection).then(()=> {
                 assert.strictEqual(connection.inTransaction, false);
@@ -785,7 +785,7 @@ describe('Connection lifecycle tests', function () {
     });
     
     it('Commiting a transaction should update the data in the database', () => {
-        var database = pg.db(settings);
+        var database = new Database(settings);
         return database.connect().then((connection) => {
             return prepareDatabase(connection).then(()=> {
                 return connection.startTransaction().then(() => {
@@ -820,7 +820,7 @@ describe('Connection lifecycle tests', function () {
     });
     
     it('Rolling back a transaction should not change the data in the database', () => {
-        var database = pg.db(settings);
+        var database = new Database(settings);
         return database.connect().then((connection) => {
             return prepareDatabase(connection).then(()=> {
                 return connection.startTransaction().then(() => {
@@ -861,7 +861,7 @@ describe('Connection lifecycle tests', function () {
 describe('Error condition tests', function () {
 
     it('Query execution error should release a connection back to the pool', () => {
-        var database = pg.db(settings); 
+        var database = new Database(settings); 
         return database.connect().then((connection) => {
             return prepareDatabase(connection).then(() => {
                 var query = {
@@ -884,7 +884,7 @@ describe('Error condition tests', function () {
     });
     
     it('Query execution error should roll back an active transaction', () => {
-        var database = pg.db(settings);
+        var database = new Database(settings);
         return database.connect().then((connection) => {
             return prepareDatabase(connection).then(()=> {
                 return connection.startTransaction().then(() => {
@@ -926,7 +926,7 @@ describe('Error condition tests', function () {
     });
     
     it('Starting a transaction on a released connection should throw an error', () => {
-        var database = pg.db(settings); 
+        var database = new Database(settings); 
         return database.connect().then((connection) => {
             return connection.release().then(() => {
                 return connection.startTransaction()
@@ -945,7 +945,7 @@ describe('Error condition tests', function () {
     });
     
     it('Starting a transaction when a connection is in transaction should throw an error', () => {
-        var database = pg.db(settings); 
+        var database = new Database(settings); 
         return database.connect().then((connection) => {
             return connection.startTransaction().then(() => {
                 return connection.startTransaction()
@@ -962,7 +962,7 @@ describe('Error condition tests', function () {
     });
     
     it('Releasing an already released connection should throw an error', () => {
-        var database = pg.db(settings); 
+        var database = new Database(settings); 
         return database.connect().then((connection) => {
             return connection.release().then(() => {
                 return connection.release()
@@ -979,7 +979,7 @@ describe('Error condition tests', function () {
     });
     
     it('Releasing a connection with an uncommitted transaction should throw an error', () => {
-        var database = pg.db(settings); 
+        var database = new Database(settings); 
         return database.connect().then((connection) => {
             return connection.startTransaction().then(() => {
                 return connection.release()
@@ -996,7 +996,7 @@ describe('Error condition tests', function () {
     });
     
     it('Executing a query on a released connection should throw an error', () => {
-        var database = pg.db(settings); 
+        var database = new Database(settings); 
         return database.connect().then((connection) => {
             return prepareDatabase(connection).then(() => {
                 return connection.release().then(() => {
@@ -1021,7 +1021,7 @@ describe('Error condition tests', function () {
     });
     
     it('Executing a query with no text should throw an error and release connection', () => {
-        var database = pg.db(settings); 
+        var database = new Database(settings); 
         return database.connect().then((connection) => {
             return prepareDatabase(connection).then(() => {
                 var query = {
@@ -1044,7 +1044,7 @@ describe('Error condition tests', function () {
     });
     
     it('Executing a query with invalid SQL should throw an error and release connection', () => {
-        var database = pg.db(settings); 
+        var database = new Database(settings); 
         return database.connect().then((connection) => {
             return prepareDatabase(connection).then(() => {
                 var query = {
@@ -1067,7 +1067,7 @@ describe('Error condition tests', function () {
     });
     
     it('Executing a query with invalid result parser should throw an error and release connection', () => {
-        var database = pg.db(settings); 
+        var database = new Database(settings); 
         return database.connect().then((connection) => {
             return prepareDatabase(connection).then(() => {
                 var query = {
@@ -1098,7 +1098,7 @@ describe('Error condition tests', function () {
     it('Attempt to connection to a non-existing database should throw an error', () => {
         var settings1 = JSON.parse(JSON.stringify(settings));
         settings1.connection.database = 'invalid';
-        var database = pg.db(settings1);
+        var database = new Database(settings1);
         return database.connect().then((connection) => {
             assert.fail();
         })

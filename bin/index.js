@@ -1,28 +1,14 @@
 "use strict";
-// IMPORTS
-// ================================================================================================
-const Database_1 = require('./lib/Database');
 const util_1 = require('./lib/util');
 // GLOBALS
 // ================================================================================================
-const databases = new Map();
-// exported utils
-exports.utils = {
+exports.util = {
     since: util_1.since
 };
-// database getter
-function db(options) {
-    var db = databases.get(JSON.stringify(options.connection));
-    if (db === undefined) {
-        options = Object.assign({}, options);
-        db = new Database_1.Database(options);
-        databases.set(JSON.stringify(options.connection), db);
-    }
-    return db;
-}
-exports.db = db;
 // RE-EXPORTS
 // ================================================================================================
+var Database_1 = require('./lib/Database');
+exports.Database = Database_1.Database;
 var defaults_1 = require('./lib/defaults');
 exports.defaults = defaults_1.defaults;
 var Session_1 = require('./lib/Session');

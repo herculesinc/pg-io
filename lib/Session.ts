@@ -27,16 +27,16 @@ export class Session {
     client      : Client;
     options     : SessionOptions;
     transaction : TransactionState;
-    logger      : Logger;
+    logger?     : Logger;
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    constructor(client: Client, options?: SessionOptions) {
+    constructor(client: Client, options: SessionOptions, logger?: Logger) {
         if (!client) throw new ConnectionError('Cannot create a connection session: client is undefined');
         this.client = client;
-        this.options = Object.assign({}, defaults.session, options);
-        this.logger = defaults.logger;
-
+        this.options = options;
+        this.logger = logger;
+        
         if (this.options.startTransaction) {
             this.logger && this.logger.debug(`Starting database transaction in lazy mode`)
             this.transaction = TransactionState.pending;

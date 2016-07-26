@@ -10,21 +10,22 @@
     "database"
   ],
   "main": "index.js",
+  "typings": "pg-io.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/herculesinc/pg-io.git"
+  },
   "license": "MIT",
   "author": {
     "name": "irakliy",
     "email": "irakliy81@live.com"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/herculesinc/pg-io.git"
+  "engines": {
+    "node": "6.3.x"
   },
   "dependencies": {
     "generic-pool": "2.4.x",
     "pg": "6.0.x"
-  },
-  "engines": {
-    "node": "6.3.x"
   },
   "devDependencies": {
     "mocha": "2.5.x",

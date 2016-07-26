@@ -7,20 +7,24 @@ import { Session, SessionOptions } from './Session';
 import { defaults } from './defaults';
 import { since, Logger } from './util';
 
+// MODULE VARIABLES
+// ================================================================================================
+const ERROR_EVENT = 'error';
+
 // INTERFACES
 // ================================================================================================
 export interface DatabaseOptions {
-    application?: string;
-    connection  : ConnectionSettings;
-    pool?       : PoolOptions;
+    name?           : string;
+    pool?           : PoolOptions;
+    connection      : ConnectionSettings;
 }
 
 export interface ConnectionSettings {
-    host        : string;
-    port?       : number;
-    user        : string;
-    password    : string;
-    database    : string;
+    host            : string;
+    port?           : number;
+    user            : string;
+    password        : string;
+    database        : string;
 }
 
 export interface PoolOptions {
@@ -40,25 +44,27 @@ export class Database {
 
     name        : string;
     pool        : Pool<Client>;
-    logger      : Logger;
+    logger?     : Logger;
     Session     : typeof Session;
-    settings    : ConnectionSettings;
 
-    constructor(settings: DatabaseOptions) {
-        //this.name = settings.database;
-        this.logger = defaults.logger;
-        this.Session = defaults.SessionConstructor;
+    constructor(options: DatabaseOptions, logger?: Logger) {
 
-        // 
-        this.settings = Object.assign({}, defaults.connection, settings.connection);
+        if (!options) throw TypeError('Cannot create a Database: options are undefined');
+        if (!options.connection) throw TypeError('Cannot create a Database: connection settings are undefined');
+
+        // set basic properties
+        this.name = options.name || defaults.name;
+        this.Session = defaults.SessionCtr;
+        this.logger = logger;
 
         // initialize client poool
-        const poolOptions = Object.assign({}, defaults.pool, settings.pool);
-        this.pool = new Pool(new ClientFactory(this, poolOptions));
+        const connectionSettings = Object.assign({}, defaults.connection, options.connection);
+        const poolOptions = Object.assign({}, defaults.pool, options.pool);
+        this.pool = new Pool(new ClientFactory(this, connectionSettings, poolOptions));
     }
 
     connect(options?: SessionOptions): Promise<Session> {
-        options = Object.assign({}, defaults.connection, options);
+        options = Object.assign({}, defaults.session, options);
         
         const start = process.hrtime();
         
@@ -79,15 +85,15 @@ export class Database {
                     }
                 };
 
-                const connection = new this.Session(client, options);
+                const session = new this.Session(client, options, this.logger);
 
                 this.logger && this.logger.log(`${this.name}::connected`, {
                     connectionTime  : since(start),
                     poolSize        : this.pool.getPoolSize(),
                     poolAvailable   : this.pool.availableObjectsCount()
                 });
-
-                resolve(connection);
+                // TODO: fire connected event
+                resolve(session);
             });
         });
     }
@@ -120,6 +126,7 @@ export class Database {
 class ClientFactory implements Factory<Client> {
 
     database            : Database;
+    settings            : ConnectionSettings;
 
     min?                : number;
     max?                : number;
@@ -127,8 +134,10 @@ class ClientFactory implements Factory<Client> {
     idleTimeoutMillis?  : number;
     reapIntervalMillis? : number;
 
-    constructor(database: Database, options?: PoolOptions) {
+    constructor(database: Database, settings: ConnectionSettings, options?: PoolOptions) {
         this.database = database;
+        this.settings = settings;
+
         if (options) {
             this.min = 0;
             this.max = options.maxSize;
@@ -139,10 +148,10 @@ class ClientFactory implements Factory<Client> {
     }
 
     create(callback: (error: Error | void, client?: Client) => void): void {
-        const client = new Client(this.database.settings);
+        const client = new Client(this.settings);
         client.on('error', error => {
             this.database.pool.destroy(client);
-            // TODO: emit connection error
+            // TODO: emit error event
         });
 
         client.connect(error => callback(error, error ? undefined : client));

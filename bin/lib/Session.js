@@ -2,19 +2,18 @@
 const Query_1 = require('./Query');
 const Collector_1 = require('./Collector');
 const errors_1 = require('./errors');
-const defaults_1 = require('./defaults');
 const util_1 = require('./util');
 // SESSION CLASS DEFINITION
 // ================================================================================================
 class Session {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    constructor(client, options) {
+    constructor(client, options, logger) {
         if (!client)
             throw new errors_1.ConnectionError('Cannot create a connection session: client is undefined');
         this.client = client;
-        this.options = Object.assign({}, defaults_1.defaults.session, options);
-        this.logger = defaults_1.defaults.logger;
+        this.options = options;
+        this.logger = logger;
         if (this.options.startTransaction) {
             this.logger && this.logger.debug(`Starting database transaction in lazy mode`);
             this.transaction = 1 /* pending */;
