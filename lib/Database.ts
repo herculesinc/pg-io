@@ -1,5 +1,6 @@
 // IMPORTS
 // ================================================================================================
+import * as events from 'events';
 import * as pg from 'pg';
 import { ConnectionError } from './errors';
 import { Session, SessionOptions } from './Session';
@@ -39,27 +40,32 @@ export interface PoolState {
 
 // DATABASE CLASS
 // ================================================================================================
-export class Database {
+export class Database extends events.EventEmitter {
 
     name        : string;
     pgPool      : pg.Pool;
     logger?     : Logger;
     Session     : typeof Session;
 
-    constructor(options: DatabaseOptions, logger?: Logger) {
+    constructor(options: DatabaseOptions, logger?: Logger, SessionCtr?: typeof Session) {
+        super();
 
         if (!options) throw TypeError('Cannot create a Database: options are undefined');
         if (!options.connection) throw TypeError('Cannot create a Database: connection settings are undefined');
 
         // set basic properties
         this.name = options.name || defaults.name;
-        this.Session = defaults.SessionCtr;
+        this.Session = SessionCtr || defaults.SessionCtr;
         this.logger = logger;
 
-        // initialize client pool
+        // initialize connection pool
         const connectionSettings = Object.assign({}, defaults.connection, options.connection);
         const poolOptions = Object.assign({}, defaults.pool, options.pool);
         this.pgPool = new pg.Pool(buildPgPoolOptions(connectionSettings, poolOptions));
+
+        this.pgPool.on('error', (error) => {
+           this.emit(ERROR_EVENT, error); 
+        });
     }
 
     connect(options?: SessionOptions): Promise<Session> {
@@ -79,7 +85,6 @@ export class Database {
                     poolSize        : this.pgPool.pool.getPoolSize(),
                     poolAvailable   : this.pgPool.pool.availableObjectsCount()
                 });
-                // TODO: fire connected event
                 resolve(session);
             });
         });

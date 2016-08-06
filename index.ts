@@ -1,6 +1,5 @@
 ﻿// IMPORTS
 // ================================================================================================
-import { Database, DatabaseOptions } from './lib/Database';
 import { since } from './lib/util';
 
 // INTERFACES

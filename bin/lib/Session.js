@@ -55,7 +55,7 @@ class Session {
             case 'commit':
                 this.logger && this.logger.debug('Committing transaction and releasing session back to the pool');
                 return this.execute(COMMIT_TRANSACTION)
-                    .then(() => this.closeSession());
+                    .then(() => this.releaseConnection());
             case 'rollback':
                 this.logger && this.logger.debug('Rolling back transaction and releasing session back to the pool');
                 return this.rollbackAndRelease();
@@ -65,7 +65,7 @@ class Session {
                     return this.rollbackAndRelease(new errors_1.TransactionError('Uncommitted transaction detected during session release'));
                 }
                 else {
-                    this.closeSession();
+                    this.releaseConnection();
                     return Promise.resolve();
                 }
         }
@@ -76,15 +76,22 @@ class Session {
         }
         var start = process.hrtime();
         const { queries, command, transaction } = this.buildQueryList(queryOrQueries);
-        this.logger && this.logger.debug(`Executing ${queries.length} queries: [${command}]`);
+        if (!queries.length)
+            return Promise.resolve();
+        if (this.options.logQueryText) {
+            const queryText = buildQueryText(queries);
+            this.logger && this.logger.debug(`Executing ${queries.length} queries:\n${queryText}`);
+        }
+        else {
+            this.logger && this.logger.debug(`Executing ${queries.length} queries: [${command}]`);
+        }
         return Promise.resolve()
             .then(() => this.buildDbQueries(queries))
             .then((dbQueries) => dbQueries.map((query) => this.executeQuery(query)))
             .then((queryResults) => Promise.all(queryResults))
             .then((results) => {
             try {
-                let duration = util_1.since(start);
-                this.logger && this.logger.trace('database', command, duration); // TODO: get database name
+                this.logger && this.logger.trace('database', command, util_1.since(start), true); // TODO: get database name
                 start = process.hrtime();
                 const flatResults = results.reduce((agg, result) => agg.concat(result), []);
                 if (queries.length !== flatResults.length) {
@@ -96,8 +103,7 @@ class Session {
                     collector.addResult(query, this.processQueryResult(query, flatResults[i]));
                 }
                 this.transaction = transaction;
-                duration = util_1.since(start);
-                this.logger && this.logger.debug(`Query results processed in ${duration} ms`);
+                this.logger && this.logger.debug(`Query results processed in ${util_1.since(start)} ms`);
                 return collector.getResults();
             }
             catch (error) {
@@ -107,6 +113,7 @@ class Session {
             }
         })
             .catch((reason) => {
+            this.logger && this.logger.trace('database', command, util_1.since(start), false); // TODO: get database name
             return this.rollbackAndRelease(reason);
         });
     }
@@ -130,23 +137,23 @@ class Session {
             this.client.query(ROLLBACK_TRANSACTION.text, (error, results) => {
                 if (error) {
                     error = new errors_1.QueryError(error);
-                    this.closeSession(error);
+                    this.releaseConnection(error);
                     reason ? reject(reason) : reject(error);
                 }
                 else {
                     if (reason) {
-                        this.closeSession();
+                        this.releaseConnection();
                         reject(reason);
                     }
                     else {
-                        this.closeSession();
+                        this.releaseConnection();
                         resolve();
                     }
                 }
             });
         });
     }
-    closeSession(error) {
+    releaseConnection(error) {
         this.transaction = undefined;
         this.client.release(error);
         this.client = undefined;
@@ -214,4 +221,19 @@ const ROLLBACK_TRANSACTION = {
     name: 'qRollbackTransaction',
     text: 'ROLLBACK;'
 };
+// HELPER FUNCTIONS
+// ================================================================================================
+function buildQueryText(queries) {
+    if (!queries || !queries.length)
+        return undefined;
+    let text = '';
+    for (let query of queries) {
+        let queryName = query.name ? query.name : 'unnamed';
+        let sideLength = Math.floor((78 - queryName.length) / 2);
+        text += ('_'.repeat(sideLength) + '[' + queryName + ']' + '_'.repeat(sideLength)) + '\n';
+        text += (query.text + '\n');
+    }
+    text += ('_'.repeat(80));
+    return text;
+}
 //# sourceMappingURL=Session.js.map

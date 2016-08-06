@@ -27,6 +27,7 @@ declare module "pg-io" {
     }
 
     export const defaults: {
+        name            : string;
         SessionCtr      : typeof Session;
         connection      : ConnectionSettings;
         session         : SessionOptions;
@@ -54,7 +55,7 @@ declare module "pg-io" {
 
         name: string;
 
-        constructor(options: DatabaseOptions, logger?: Logger);
+        constructor(options: DatabaseOptions, logger?: Logger, SessionCtr?: typeof Session);
 
         connect(options?: SessionOptions): Promise<Session>;
         close(): Promise<any>;

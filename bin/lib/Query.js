@@ -4,8 +4,8 @@
 const errors_1 = require('./errors');
 // MODULE VARIABLES
 // ================================================================================================
-const paramPattern = /{{([a-z0-9\$_]+)}}/gi;
-const arrayParamPatter = /\[\[([a-z0-9\$_]+)\]\]/gi;
+const PARAM_PATTERN = /{{([a-z0-9\$_]+)}}/gi;
+const ARRAY_PARAM_PATTERN = /\[\[([a-z0-9\$_]+)\]\]/gi;
 function Query(spec, params, mask) {
     if (!spec)
         return undefined;
@@ -42,11 +42,11 @@ function toDbQuery(query) {
         throw new errors_1.QueryError('Invalid query: query text cannot be empty');
     if (query.params) {
         const params = [];
-        let text = query.text.replace(paramPattern, function (match, paramName) {
+        let text = query.text.replace(PARAM_PATTERN, function (match, paramName) {
             const param = query.params[paramName];
             return stringifySingleParam(param, params);
         });
-        text = text.replace(arrayParamPatter, function (match, paramName) {
+        text = text.replace(ARRAY_PARAM_PATTERN, function (match, paramName) {
             const param = query.params[paramName];
             if (param && !Array.isArray(param))
                 throw new errors_1.QueryError('Invalid query: non-array supplied for array parameter');

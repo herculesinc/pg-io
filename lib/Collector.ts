@@ -7,7 +7,7 @@ import { Query, ResultQuery, isResultQuery } from './Query';
 // ================================================================================================
 export class Collector {
 	
-	private results: Map<string, any>;
+	private results		: Map<string, any>;
 	private singleResult: boolean;
 
 	constructor(queries: Query[]) {

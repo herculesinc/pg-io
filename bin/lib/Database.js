@@ -1,6 +1,7 @@
 "use strict";
 // IMPORTS
 // ================================================================================================
+const events = require('events');
 const pg = require('pg');
 const errors_1 = require('./errors');
 const defaults_1 = require('./defaults');
@@ -10,20 +11,24 @@ const util_1 = require('./util');
 const ERROR_EVENT = 'error';
 // DATABASE CLASS
 // ================================================================================================
-class Database {
-    constructor(options, logger) {
+class Database extends events.EventEmitter {
+    constructor(options, logger, SessionCtr) {
+        super();
         if (!options)
             throw TypeError('Cannot create a Database: options are undefined');
         if (!options.connection)
             throw TypeError('Cannot create a Database: connection settings are undefined');
         // set basic properties
         this.name = options.name || defaults_1.defaults.name;
-        this.Session = defaults_1.defaults.SessionCtr;
+        this.Session = SessionCtr || defaults_1.defaults.SessionCtr;
         this.logger = logger;
-        // initialize client pool
+        // initialize connection pool
         const connectionSettings = Object.assign({}, defaults_1.defaults.connection, options.connection);
         const poolOptions = Object.assign({}, defaults_1.defaults.pool, options.pool);
         this.pgPool = new pg.Pool(buildPgPoolOptions(connectionSettings, poolOptions));
+        this.pgPool.on('error', (error) => {
+            this.emit(ERROR_EVENT, error);
+        });
     }
     connect(options) {
         options = Object.assign({}, defaults_1.defaults.session, options);
@@ -39,7 +44,6 @@ class Database {
                     poolSize: this.pgPool.pool.getPoolSize(),
                     poolAvailable: this.pgPool.pool.availableObjectsCount()
                 });
-                // TODO: fire connected event
                 resolve(session);
             });
         });
