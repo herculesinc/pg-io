@@ -1,8 +1,7 @@
 "use strict";
 // IMPORTS
 // ================================================================================================
-const pg_1 = require('pg');
-const generic_pool_1 = require('generic-pool');
+const pg = require('pg');
 const errors_1 = require('./errors');
 const defaults_1 = require('./defaults');
 const util_1 = require('./util');
@@ -21,35 +20,24 @@ class Database {
         this.name = options.name || defaults_1.defaults.name;
         this.Session = defaults_1.defaults.SessionCtr;
         this.logger = logger;
-        // initialize client poool
+        // initialize client pool
         const connectionSettings = Object.assign({}, defaults_1.defaults.connection, options.connection);
         const poolOptions = Object.assign({}, defaults_1.defaults.pool, options.pool);
-        this.pool = new generic_pool_1.Pool(new ClientFactory(this, connectionSettings, poolOptions));
+        this.pgPool = new pg.Pool(buildPgPoolOptions(connectionSettings, poolOptions));
     }
     connect(options) {
         options = Object.assign({}, defaults_1.defaults.session, options);
         const start = process.hrtime();
         this.logger && this.logger.debug(`Connecting to the database; pool state ${this.getPoolDescription()}`);
         return new Promise((resolve, reject) => {
-            this.pool.acquire((error, client) => {
+            this.pgPool.connect((error, client) => {
                 if (error)
                     return reject(new errors_1.ConnectionError(error));
-                client.release = (error) => {
-                    delete client.release;
-                    if (error) {
-                        // emit and log event
-                        this.pool.destroy(client);
-                    }
-                    else {
-                        // emit and log event
-                        this.pool.release(client);
-                    }
-                };
                 const session = new this.Session(client, options, this.logger);
                 this.logger && this.logger.log(`${this.name}::connected`, {
                     connectionTime: util_1.since(start),
-                    poolSize: this.pool.getPoolSize(),
-                    poolAvailable: this.pool.availableObjectsCount()
+                    poolSize: this.pgPool.pool.getPoolSize(),
+                    poolAvailable: this.pgPool.pool.availableObjectsCount()
                 });
                 // TODO: fire connected event
                 resolve(session);
@@ -57,53 +45,33 @@ class Database {
         });
     }
     close() {
-        return new Promise((resolve, reject) => {
-            this.pool.drain(() => {
-                this.pool.destroyAllNow();
-                resolve();
-            });
-        });
+        return this.pgPool.end();
     }
     // POOL INFO ACCESSORS
     // --------------------------------------------------------------------------------------------
     getPoolState() {
         return {
-            size: this.pool.getPoolSize(),
-            available: this.pool.availableObjectsCount()
+            size: this.pgPool.pool.getPoolSize(),
+            available: this.pgPool.pool.availableObjectsCount()
         };
     }
     getPoolDescription() {
-        return `{ size: ${this.pool.getPoolSize()}, available: ${this.pool.availableObjectsCount()} }`;
+        return `{ size: ${this.pgPool.pool.getPoolSize()}, available: ${this.pgPool.pool.availableObjectsCount()} }`;
     }
 }
 exports.Database = Database;
-// CLIENT FACTORY CLASS
+// HELPER FUNCTIONS
 // ================================================================================================
-class ClientFactory {
-    constructor(database, settings, options) {
-        this.database = database;
-        this.settings = settings;
-        if (options) {
-            this.min = 0;
-            this.max = options.maxSize;
-            this.refreshIdle = (options.idleTimeout > 0);
-            this.idleTimeoutMillis = options.idleTimeout;
-            this.reapIntervalMillis = options.reapInterval;
-        }
-    }
-    create(callback) {
-        const client = new pg_1.Client(this.settings);
-        client.on('error', error => {
-            this.database.pool.destroy(client);
-            // TODO: emit error event
-        });
-        client.connect(error => callback(error, error ? undefined : client));
-    }
-    destroy(client) {
-        if (client._destroying)
-            return;
-        client._destroying = true;
-        client.end();
-    }
+function buildPgPoolOptions(conn, pool) {
+    return {
+        host: conn.host,
+        port: conn.port,
+        user: conn.user,
+        password: conn.password,
+        database: conn.database,
+        max: pool.maxSize,
+        idleTimeoutMillis: pool.idleTimeout,
+        reapIntervalMillis: pool.reapInterval
+    };
 }
 //# sourceMappingURL=Database.js.map

@@ -731,20 +731,23 @@ describe('Parametrized query tests', function () {
 describe('Connection lifecycle tests', function () {
 
     it('Releasing a connection should return it to the connection pool', () => {
-        var database = new Database(settings);
-        assert.strictEqual(database.getPoolState().size, 1);
-        assert.strictEqual(database.getPoolState().available, 1);
+        const database = new Database(settings);
+        const poolState = database.getPoolState();
+        assert.strictEqual(poolState.size, 0);
+        assert.strictEqual(poolState.available, 0);
         
         return database.connect().then((connection) => {
             return prepareDatabase(connection).then(()=> {
                 assert.strictEqual(connection.isActive, true);
-                assert.strictEqual(database.getPoolState().size, 1);
-                assert.strictEqual(database.getPoolState().available, 0);
+                const poolState = database.getPoolState();
+                assert.strictEqual(poolState.size, 1);
+                assert.strictEqual(poolState.available, 0);
                 
                 return connection.release().then(() => {
                     assert.strictEqual(connection.isActive, false);
-                    assert.strictEqual(database.getPoolState().size, 1);
-                    assert.strictEqual(database.getPoolState().available, 1);
+                    const poolState = database.getPoolState();
+                    assert.strictEqual(poolState.size, 1);
+                    assert.strictEqual(poolState.available, 1);
                 });  
             });
         });

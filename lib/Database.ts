@@ -1,7 +1,6 @@
 // IMPORTS
 // ================================================================================================
-import { Client} from 'pg';
-import { Factory, Pool } from 'generic-pool';
+import * as pg from 'pg';
 import { ConnectionError } from './errors';
 import { Session, SessionOptions } from './Session';
 import { defaults } from './defaults';
@@ -43,7 +42,7 @@ export interface PoolState {
 export class Database {
 
     name        : string;
-    pool        : Pool<Client>;
+    pgPool      : pg.Pool;
     logger?     : Logger;
     Session     : typeof Session;
 
@@ -57,10 +56,10 @@ export class Database {
         this.Session = defaults.SessionCtr;
         this.logger = logger;
 
-        // initialize client poool
+        // initialize client pool
         const connectionSettings = Object.assign({}, defaults.connection, options.connection);
         const poolOptions = Object.assign({}, defaults.pool, options.pool);
-        this.pool = new Pool(new ClientFactory(this, connectionSettings, poolOptions));
+        this.pgPool = new pg.Pool(buildPgPoolOptions(connectionSettings, poolOptions));
     }
 
     connect(options?: SessionOptions): Promise<Session> {
@@ -70,27 +69,15 @@ export class Database {
         
         this.logger && this.logger.debug(`Connecting to the database; pool state ${this.getPoolDescription()}`);
         return new Promise((resolve, reject) => {
-            this.pool.acquire((error, client) => {
+            this.pgPool.connect((error, client) => {
                 if (error) return reject(new ConnectionError(error));
-
-                client.release = (error?: Error) => {
-                    delete client.release;
-                    if (error) {
-                        // emit and log event
-                        this.pool.destroy(client);
-                    }
-                    else {
-                        // emit and log event
-                        this.pool.release(client);
-                    }
-                };
 
                 const session = new this.Session(client, options, this.logger);
 
                 this.logger && this.logger.log(`${this.name}::connected`, {
                     connectionTime  : since(start),
-                    poolSize        : this.pool.getPoolSize(),
-                    poolAvailable   : this.pool.availableObjectsCount()
+                    poolSize        : this.pgPool.pool.getPoolSize(),
+                    poolAvailable   : this.pgPool.pool.availableObjectsCount()
                 });
                 // TODO: fire connected event
                 resolve(session);
@@ -99,67 +86,34 @@ export class Database {
     }
 
     close(): Promise<any> {
-        return new Promise((resolve, reject) => {
-            this.pool.drain(() => {
-                this.pool.destroyAllNow();
-                resolve();
-            });
-        });
+        return this.pgPool.end();
     }
 
     // POOL INFO ACCESSORS
     // --------------------------------------------------------------------------------------------
     getPoolState(): PoolState {
         return {
-            size        : this.pool.getPoolSize(),
-            available   : this.pool.availableObjectsCount()
+            size        : this.pgPool.pool.getPoolSize(),
+            available   : this.pgPool.pool.availableObjectsCount()
         };
     }
     
     getPoolDescription(): string {
-        return `{ size: ${this.pool.getPoolSize()}, available: ${this.pool.availableObjectsCount()} }`;
+        return `{ size: ${this.pgPool.pool.getPoolSize()}, available: ${this.pgPool.pool.availableObjectsCount()} }`;
     }
 }
 
-// CLIENT FACTORY CLASS
+// HELPER FUNCTIONS
 // ================================================================================================
-class ClientFactory implements Factory<Client> {
-
-    database            : Database;
-    settings            : ConnectionSettings;
-
-    min?                : number;
-    max?                : number;
-    refreshIdle?        : boolean;
-    idleTimeoutMillis?  : number;
-    reapIntervalMillis? : number;
-
-    constructor(database: Database, settings: ConnectionSettings, options?: PoolOptions) {
-        this.database = database;
-        this.settings = settings;
-
-        if (options) {
-            this.min = 0;
-            this.max = options.maxSize;
-            this.refreshIdle = (options.idleTimeout > 0);
-            this.idleTimeoutMillis = options.idleTimeout;
-            this.reapIntervalMillis = options.reapInterval;
-        }
-    }
-
-    create(callback: (error: Error | void, client?: Client) => void): void {
-        const client = new Client(this.settings);
-        client.on('error', error => {
-            this.database.pool.destroy(client);
-            // TODO: emit error event
-        });
-
-        client.connect(error => callback(error, error ? undefined : client));
-    }
-
-    destroy(client: Client): void {
-        if (client._destroying) return;
-        client._destroying = true;
-        client.end();
-    }
+function buildPgPoolOptions(conn: ConnectionSettings, pool: PoolOptions): pg.ClientConfig {
+    return {
+        host        : conn.host,
+        port        : conn.port,
+        user        : conn.user,
+        password    : conn.password,
+        database    : conn.database,
+        max                 : pool.maxSize,
+        idleTimeoutMillis   : pool.idleTimeout,
+        reapIntervalMillis  : pool.reapInterval
+    };
 }

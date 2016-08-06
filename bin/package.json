@@ -24,7 +24,6 @@
     "node": "6.3.x"
   },
   "dependencies": {
-    "generic-pool": "2.4.x",
     "pg": "6.0.x"
   },
   "devDependencies": {
