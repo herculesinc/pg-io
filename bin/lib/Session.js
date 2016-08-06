@@ -8,9 +8,10 @@ const util_1 = require('./util');
 class Session {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    constructor(client, options, logger) {
+    constructor(dbName, client, options, logger) {
         if (!client)
             throw new errors_1.ConnectionError('Cannot create a connection session: client is undefined');
+        this.dbName = dbName;
         this.client = client;
         this.options = options;
         this.logger = logger;
@@ -91,7 +92,7 @@ class Session {
             .then((queryResults) => Promise.all(queryResults))
             .then((results) => {
             try {
-                this.logger && this.logger.trace('database', command, util_1.since(start), true); // TODO: get database name
+                this.logger && this.logger.trace(this.dbName, command, util_1.since(start), true);
                 start = process.hrtime();
                 const flatResults = results.reduce((agg, result) => agg.concat(result), []);
                 if (queries.length !== flatResults.length) {
@@ -113,7 +114,7 @@ class Session {
             }
         })
             .catch((reason) => {
-            this.logger && this.logger.trace('database', command, util_1.since(start), false); // TODO: get database name
+            this.logger && this.logger.trace(this.dbName, command, util_1.since(start), false);
             return this.rollbackAndRelease(reason);
         });
     }

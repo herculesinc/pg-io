@@ -79,8 +79,9 @@ declare module "pg-io" {
         execute(query: Query)                   : Promise<void>;
         execute(queries: Query[])               : Promise<Map<string, any>>;
         
-        constructor(client: any, options?: SessionOptions);
+        constructor(dbName: string, client: any, options?: SessionOptions, logger?: Logger);
         
+        protected dbName        : string;
         protected options       : SessionOptions;
         protected transaction   : TransactionState;
         protected logger?       : Logger;

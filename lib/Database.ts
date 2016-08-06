@@ -78,7 +78,7 @@ export class Database extends events.EventEmitter {
             this.pgPool.connect((error, client) => {
                 if (error) return reject(new ConnectionError(error));
 
-                const session = new this.Session(client, options, this.logger);
+                const session = new this.Session(this.name, client, options, this.logger);
 
                 this.logger && this.logger.log(`${this.name}::connected`, {
                     connectionTime  : since(start),

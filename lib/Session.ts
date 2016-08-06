@@ -24,6 +24,7 @@ const enum TransactionState {
 // ================================================================================================
 export class Session {
 
+    dbName      : string;
     client      : Client;
     options     : SessionOptions;
     transaction : TransactionState;
@@ -31,8 +32,9 @@ export class Session {
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    constructor(client: Client, options: SessionOptions, logger?: Logger) {
+    constructor(dbName: string, client: Client, options: SessionOptions, logger?: Logger) {
         if (!client) throw new ConnectionError('Cannot create a connection session: client is undefined');
+        this.dbName = dbName;
         this.client = client;
         this.options = options;
         this.logger = logger;
@@ -135,7 +137,7 @@ export class Session {
             .then((queryResults) => Promise.all(queryResults))
             .then((results) => {
                 try {
-                    this.logger && this.logger.trace('database', command, since(start), true); // TODO: get database name
+                    this.logger && this.logger.trace(this.dbName, command, since(start), true);
                     start = process.hrtime();
                     
                     const flatResults = results.reduce((agg: any[], result) => agg.concat(result), []);
@@ -160,7 +162,7 @@ export class Session {
                 }    
             })
             .catch((reason) => {
-                this.logger && this.logger.trace('database', command, since(start), false); // TODO: get database name
+                this.logger && this.logger.trace(this.dbName, command, since(start), false);
                 return this.rollbackAndRelease(reason);
             });
     }
