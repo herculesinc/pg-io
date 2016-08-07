@@ -26,7 +26,7 @@ describe('Object query tests', function() {
                     assert.strictEqual(user.tags[0], 'test');
                     assert.strictEqual(user.tags[1], 'testing');
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
     
@@ -42,7 +42,7 @@ describe('Object query tests', function() {
                 return dao.execute(query).then((user) => {
                     assert.strictEqual(user, undefined);
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
     
@@ -68,7 +68,7 @@ describe('Object query tests', function() {
                     var user2 = usermap.get(query2.name);
                     assert.strictEqual(user2.username, 'Yason');
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
     
@@ -100,7 +100,7 @@ describe('Object query tests', function() {
                     assert.strictEqual(users[1].id, 2);
                     assert.strictEqual(users[1].username, 'Yason');
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
     
@@ -132,7 +132,7 @@ describe('Object query tests', function() {
                     assert.strictEqual(users[1].id, 3);
                     assert.strictEqual(users[1].username, 'George');
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
     
@@ -164,7 +164,7 @@ describe('Object query tests', function() {
                     assert.strictEqual(users[1].id, 3);
                     assert.strictEqual(users[1].username, 'George');
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
     
@@ -182,7 +182,7 @@ describe('Object query tests', function() {
                 return dao.execute(query).then((userId) => {
                     assert.strictEqual(userId, 1);
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
     
@@ -211,7 +211,7 @@ describe('Object query tests', function() {
                     assert.strictEqual(userIds[0], 1);
                     assert.strictEqual(userIds[1], 2);
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
 });
@@ -235,7 +235,7 @@ describe('List query tests', function () {
                     assert.strictEqual(users[1].id, 3);
                     assert.strictEqual(users[1].username, 'George');
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
 
@@ -250,7 +250,7 @@ describe('List query tests', function () {
                 return dao.execute(query).then((users) => {
                     assert.strictEqual(users.length, 0);
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
 
@@ -282,7 +282,7 @@ describe('List query tests', function () {
                     assert.strictEqual(users2[0].id, 3);
                     assert.strictEqual(users2[0].username, 'George');
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
     
@@ -314,7 +314,7 @@ describe('List query tests', function () {
                     assert.strictEqual(users2[0].id, 3);
                     assert.strictEqual(users2[0].username, 'George');
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
     
@@ -354,7 +354,7 @@ describe('List query tests', function () {
                     assert.strictEqual(users3[0].id, 3);
                     assert.strictEqual(users3[0].username, 'George');
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
 
@@ -384,7 +384,7 @@ describe('List query tests', function () {
                     assert.strictEqual(users2[0].id, 3);
                     assert.strictEqual(users2[0].username, 'George');
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
 
@@ -404,7 +404,7 @@ describe('List query tests', function () {
                     assert.strictEqual(userIds[0], 1);
                     assert.strictEqual(userIds[1], 2);
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
 });
@@ -422,7 +422,7 @@ describe('Non-result query tests', function () {
                 return dao.execute(query).then((result) => {
                     assert.strictEqual(result, undefined);
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
 
@@ -435,7 +435,7 @@ describe('Non-result query tests', function () {
                 return dao.execute([query, query]).then((results) => {
                     assert.strictEqual(results, undefined);
                 });
-            }).then(() => dao.release());;
+            }).then(() => dao.end());;
         });
     });
 });
@@ -472,7 +472,7 @@ describe('Mixed query tests', function () {
                     assert.strictEqual(users[1].id, 3);
                     assert.strictEqual(users[1].username, 'George');
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
 
@@ -509,7 +509,7 @@ describe('Mixed query tests', function () {
                     assert.strictEqual(users[1].id, 3);
                     assert.strictEqual(users[1].username, 'George');
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
     
@@ -550,7 +550,7 @@ describe('Mixed query tests', function () {
                     assert.strictEqual(users[1].id, 3);
                     assert.strictEqual(users[1].username, 'George');
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
 });
@@ -574,7 +574,7 @@ describe('Parametrized query tests', function () {
                     assert.strictEqual(user.id, 2);
                     assert.strictEqual(user.username, 'Yason');
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
 
@@ -593,7 +593,7 @@ describe('Parametrized query tests', function () {
                     assert.strictEqual(user.id, 2);
                     assert.strictEqual(user.username, 'Yason');
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
 
@@ -612,7 +612,7 @@ describe('Parametrized query tests', function () {
                     assert.strictEqual(user.id, 4);
                     assert.strictEqual(user.username, `T'est`);
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
     
@@ -665,7 +665,7 @@ describe('Parametrized query tests', function () {
                     assert.strictEqual(user4.id, 3);
                     assert.strictEqual(user4.username, `George`);
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
     
@@ -721,7 +721,7 @@ describe('Parametrized query tests', function () {
                     assert.strictEqual(user4.id, 3);
                     assert.strictEqual(user4.username, `George`);
                 });
-            }).then(() => dao.release());
+            }).then(() => dao.end());
         });
     });
 });
@@ -743,7 +743,7 @@ describe('Connection lifecycle tests', function () {
                 assert.strictEqual(poolState.size, 1);
                 assert.strictEqual(poolState.available, 0);
                 
-                return connection.release().then(() => {
+                return connection.end().then(() => {
                     assert.strictEqual(connection.isActive, false);
                     const poolState = database.getPoolState();
                     assert.strictEqual(poolState.size, 1);
@@ -761,7 +761,7 @@ describe('Connection lifecycle tests', function () {
                 return connection.startTransaction().then(() => {
                     assert.strictEqual(connection.isActive, true);
                     assert.strictEqual(connection.inTransaction, true);
-                    return connection.release('rollback').then(() => {
+                    return connection.end('rollback').then(() => {
                         assert.strictEqual(connection.isActive, false);
                         assert.strictEqual(connection.inTransaction, false);
                     }); 
@@ -778,7 +778,7 @@ describe('Connection lifecycle tests', function () {
                 return connection.startTransaction(false).then(() => {
                     assert.strictEqual(connection.isActive, true);
                     assert.strictEqual(connection.inTransaction, true);
-                    return connection.release('rollback').then(() => {
+                    return connection.end('rollback').then(() => {
                         assert.strictEqual(connection.isActive, false);
                         assert.strictEqual(connection.inTransaction, false);
                     }); 
@@ -800,7 +800,7 @@ describe('Connection lifecycle tests', function () {
                     };
                     
                     return connection.execute(query).then(() => {
-                        return connection.release('commit').then(() => {
+                        return connection.end('commit').then(() => {
                             assert.strictEqual(connection.isActive, false);
                             assert.strictEqual(connection.inTransaction, false);
                         });
@@ -817,7 +817,7 @@ describe('Connection lifecycle tests', function () {
                 return connection.execute(query).then((user) => {
                     assert.strictEqual(user.id, 1);
                     assert.strictEqual(user.username, 'Test');
-                }).then(() => connection.release());
+                }).then(() => connection.end());
             })
         });
     });
@@ -835,7 +835,7 @@ describe('Connection lifecycle tests', function () {
                     };
                     
                     return connection.execute(query).then(() => {
-                        return connection.release('rollback').then(() => {
+                        return connection.end('rollback').then(() => {
                             assert.strictEqual(connection.isActive, false);
                             assert.strictEqual(connection.inTransaction, false);
                         });
@@ -853,7 +853,7 @@ describe('Connection lifecycle tests', function () {
                 return connection.execute(query).then((user) => {
                     assert.strictEqual(user.id, 1);
                     assert.strictEqual(user.username, 'Irakliy');
-                }).then(() => connection.release());
+                }).then(() => connection.end());
             })
         });
     });
@@ -863,7 +863,7 @@ describe('Connection lifecycle tests', function () {
 // ================================================================================================
 describe('Error condition tests', function () {
 
-    it('Query execution error should release a connection back to the pool', () => {
+    it('Query execution error should end the session and release the connection back to the pool', () => {
         var database = new Database(settings); 
         return database.connect().then((connection) => {
             return prepareDatabase(connection).then(() => {
@@ -923,15 +923,15 @@ describe('Error condition tests', function () {
                 return connection.execute(query).then((user) => {
                     assert.strictEqual(user.id, 1);
                     assert.strictEqual(user.username, 'Irakliy');
-                }).then(() => connection.release());
+                }).then(() => connection.end());
             })
         });
     });
     
-    it('Starting a transaction on a released connection should throw an error', () => {
+    it('Starting a transaction on a ended session should throw an error', () => {
         var database = new Database(settings); 
         return database.connect().then((connection) => {
-            return connection.release().then(() => {
+            return connection.end().then(() => {
                 return connection.startTransaction()
                     .then(() => {
                         assert.fail();
@@ -960,15 +960,15 @@ describe('Error condition tests', function () {
                         assert.ok(reason instanceof TransactionError);
                         assert.strictEqual(connection.isActive, true);
                     });
-            }).then(() => connection.release('rollback'));;
+            }).then(() => connection.end('rollback'));;
         });
     });
     
-    it('Releasing an already released connection should throw an error', () => {
+    it('Ending an already ended connection should throw an error', () => {
         var database = new Database(settings); 
         return database.connect().then((connection) => {
-            return connection.release().then(() => {
-                return connection.release()
+            return connection.end().then(() => {
+                return connection.end()
                     .then(() => {
                         assert.fail();
                     })
@@ -985,7 +985,7 @@ describe('Error condition tests', function () {
         var database = new Database(settings); 
         return database.connect().then((connection) => {
             return connection.startTransaction().then(() => {
-                return connection.release()
+                return connection.end()
                     .then(() => {
                         assert.fail();
                     })
@@ -998,11 +998,11 @@ describe('Error condition tests', function () {
         });
     });
     
-    it('Executing a query on a released connection should throw an error', () => {
+    it('Executing a query on a ended session should throw an error', () => {
         var database = new Database(settings); 
         return database.connect().then((connection) => {
             return prepareDatabase(connection).then(() => {
-                return connection.release().then(() => {
+                return connection.end().then(() => {
                    var query = {
                         text: undefined    
                     };
@@ -1023,7 +1023,7 @@ describe('Error condition tests', function () {
         });
     });
     
-    it('Executing a query with no text should throw an error and release connection', () => {
+    it('Executing a query with no text should throw an error and end the session', () => {
         var database = new Database(settings); 
         return database.connect().then((connection) => {
             return prepareDatabase(connection).then(() => {
@@ -1046,7 +1046,7 @@ describe('Error condition tests', function () {
         });
     });
     
-    it('Executing a query with invalid SQL should throw an error and release connection', () => {
+    it('Executing a query with invalid SQL should throw an error and end the session', () => {
         var database = new Database(settings); 
         return database.connect().then((connection) => {
             return prepareDatabase(connection).then(() => {
@@ -1069,7 +1069,7 @@ describe('Error condition tests', function () {
         });
     });
     
-    it('Executing a query with invalid result parser should throw an error and release connection', () => {
+    it('Executing a query with invalid result parser should throw an error and end the session', () => {
         var database = new Database(settings); 
         return database.connect().then((connection) => {
             return prepareDatabase(connection).then(() => {

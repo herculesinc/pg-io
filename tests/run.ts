@@ -39,6 +39,8 @@ async function runTests() {
 
     const result = await session.execute(new qFetchUserById(1));
     console.log(JSON.stringify(result));
+
+    await session.end();
 }
 
 runTests();

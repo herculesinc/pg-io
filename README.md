@@ -13,7 +13,7 @@ Key principals for pg-io are:
 The above would work well for many web-server scenarios when connection is needed to process a single user request. If an error is encountered, all changes are rolled back, an error is returned to the user, and the connection is released to handle the next request. 
 
 ## Requirements
-pg-io is written in TypeScript and uses many new features of ES6 (classes, built-in promises etc.). As such, it will only work with the latest releases of Node.js which support such features. Specifically, the most recent version of pg-io __requires Node.js 5.0 or later__.
+pg-io is written in TypeScript and uses many new features of ES6. As such, it will only work with the latest releases of Node.js which support such features. Specifically, the most recent version of pg-io __requires Node.js 6.0 or later__.
 
 ## Install
 
@@ -24,11 +24,13 @@ $ npm install --save pg-io
 ## Example
 
 ```JavaScript
-import * as pg from 'pg-io';
+import { Database } from 'pg-io';
 
-var settings = { /* connections settings */ };
+// create a database object
+const db = new Database({ /* database options */ });
 
-pg.db(settings).connect().then((connection) => {
+// get a connection session
+pg.connect().then((session) => {
 
     // create a query object
     var query = {
@@ -40,49 +42,72 @@ pg.db(settings).connect().then((connection) => {
     };
 	
     // execute the query
-    return connection.execute(query)
+    return session.execute(query)
         .then((results) => {
             // result is an array of user objects
         })
-        // release the connection back to the pool
-        .then(() => connection.release());
+        // end the session to release the connection back to the pool
+        .then(() => session.end());
 });
 ```
 
 # API
 
+Please note that some interfaces have changed signficantly between 0.6 and 0.7 releases of pg-io.
+
 ## Obtaining Database Connection
 
-pg-io exposes a single function at the root level which can be used to obtain a reference to a database object:
+pg-io exposes a `Database` class which can be created like so:
 
 ```JavaScript
-function db(settings) : Database;
+const db = Database(options, logger?);
 ```
-where `settings` should have the following form:
-```
+where `options` should have the following form:
+```TypeScript
 {
-    host        : string;
-    port?       : number;  // optional, default 5432
-    user        : string;
-    password    : string;
-    database    : string;
-    poolSize?   : number;  // optional, default 10
+    name?             : string;   // defaults to 'database', used for logging
+    pool?: {                      // optional connection pool settings
+        maxSize?      : number;   // defaults to 20   
+        idleTimeout?  : number;   // defaults to 30000 milliseconds
+        reapInterval? : number;   // defaults to 1000 milliseconds
+    };
+    connection: {                 // required connection settings
+        host          : string;
+        port?         : number;   // optional, default 5432
+        user          : string;
+        password      : string;
+        database      : string;
+    }
 }
 ```
-The returned Database object can be used further to establish a connection to the database. Creation of the database object does not establish a database connection but rather allocates a pool to hold connections to the database specified by the settings object.
+and, if provided, `logger` must comply with the following interface:
+```TypeScript
+interface Logger {
+    debug(message: string);
+    info(message: string);
+    warn(message: string);
 
-Calling `db()` method multiple times with the same settings will return the same Database object. However, if different settings are supplied, different connection pools will be created.
+    error(error: Error);
+
+    log(event: string, properties?: { [key: string]: any });
+    track(metric: string, value: number);
+    trace(service: string, command: string, time: number, success?: boolean);
+}
+```
+
+Creation of the database object does not establish a database connection but rather allocates a pool to hold connections to the database specified by the options object.
 
 ### Database
-Once a reference to a Database object is obtained, it can be used to establish a connection session using the following method:
+Once a Database object is created, it can be used to acquire connection sessions from the pool like so:
 
 ```JavaScript
 database.connect(options?) : Promise<Connection>;
 ```
-The method returns a promise for a Connection object which represents a connection session. The optional `options` object has the following form:
-```
+The method returns a promise for a `Session` object which represents a connection session. The optional `options` object has the following form:
+```TypeScript
 {
-  startTransaction?: boolean // optional, default false
+  startTransaction? : boolean;    // defaults to false
+  logQueryText?     : boolean;    // defaults to false
 }
 ```
 The `startTransaction` option specifies whether a transaction should be started on the connection (more on this below).
@@ -93,99 +118,99 @@ Additionally, Database object exposes a method for checking connection pool stat
 database.getPoolState() : PoolState;
 ```
 
-Where PoolState has the following form:
-```
+Where `PoolState` has the following form:
+```TypeScript
 {
     size      : number; // current size of the connection pool
     available : number; // number of available connections in the pool
 }
 ```
 
-Database **connections must always be released** after they are no longer needed by calling `connection.release()` method (more on this below). If you do not release connections, connection pool will be exhausted and bad things will happen.
+**Connections must always be released** back to the pool after they are no longer needed by calling `session.end()` method (more on this below). If you do not release connections, connection pool will be exhausted and bad things will happen.
 
 ## Managing Transactions
-pg-io supports a simple transactions mechanism. Only one transaction is allowed per connection session. A transaction can be started at any point during the connection, and must be committed or rolled back when the connection is released back to the pool.
+pg-io supports a simple transactions mechanism. Only one transaction is allowed per connection session. A transaction can be started at any point during the session, and must be committed or rolled back when the session is ended.
 
 ### Entering Transaction Mode
 Starting a transaction can be done via the following method:
 
-```JavaScript
-connection.startTransaction(lazy?) : Promise<void>;
+```TypeScript
+connection.startTransaction(lazy?: boolean) : Promise<void>;
 ```
 
-If an optional `lazy` parameter is set to true (the default), the transaction will be started upon the first call to `connection.execute()` method. If `lazy` is set to false, the transaction will be started immediately.
+If an optional `lazy` parameter is set to true (the default), the transaction will be started upon the first call to `session.execute()` method. If `lazy` is set to false, the transaction will be started immediately.
 
-It is also possible to start a transaction at the time of connection creation by passing an options object to `database.connect()` method.
+It is also possible to start a transaction at the time of session creation by passing an options object to `database.connect()` method.
 
-```JavaScript
-import * as pg from 'pg-io';
+```TypeScript
+import { Database } from 'pg-io';
 
-var settings = { /* connections settings */ };
+const db = new Database({ /* database settings */ });
 
-pg.db(settings).connect({ stratTransaction: true }).then((connection) => {
+db.connect({ stratTransaction: true }).then((session) => {
 
-  // connection is now in transaction and all queries executed
-  // through this connection will be executed in a single transaction 
+  // session is now in transaction and all queries executed
+  // through this session will be executed in a single transaction 
 	
-  return connection.release('commit');
+  return session.release('commit');
 });
 ```
-In the above example, the transaction is actually not started immediately but is delayed until the first call to `connection.execute()` method (this is basically equivalent to starting a transaction in `lazy` mode).
+In the above example, the transaction is actually not started immediately but is delayed until the first call to `session.execute()` method (this is basically equivalent to starting a transaction in `lazy` mode).
 
-Do not start transactions manually by executing `BEGIN` commands. Doing so will confuse the connection object and bad things may happen.
+Do not start transactions manually by executing `BEGIN` commands. Doing so will confuse the session object and bad things may happen.
 
 ### Exiting Transaction Mode
 Transactions can be committed or rolled back by using the following method:
 
-```JavaScript
-connection.release(action?) : Promise<void>;
+```TypeScript
+connection.end(action?: 'commit' | 'rollback') : Promise<void>;
 ```
 where `action` can be one of the following values:
 
   * 'commit' - if there is an active transaction it will be committed
   * 'rollback' - if there is an active transaction it will be rolled back
-  * undefined - if no transaction was started on the connection, `release()` method can be called without `action` parameter. However, if the transaction is in progress, and `action` parameter is omitted, an error will be thrown and the active transaction will be rolled back before the connection is released back to the pool
+  * undefined - if no transaction was started during the session, `end()` method can be called without `action` parameter. However, if the transaction is in progress, and `action` parameter is omitted, an error will be thrown and the active transaction will be rolled back before the connection is released back to the pool
 
-Always call the `connection.release()` method after connection object is no longer needed. This will release the connection for use by other requests. If you do not release the connection, the connection pool will become exhausted and bad things will happen.  
+Always call the `session.end()` method after session object is no longer needed. This will release the connection for use by other requests. If you do not release the connection, the connection pool will become exhausted and bad things will happen.  
 
 In the example below, query1 and query2 are executed in the context of the same transaction, then transaction is committed and connection is released back to the pool.
-```JavaScript
-connection.startTransaction()
+```TypeScript
+session.startTransaction()
   .then(() => {
-    var query1 = { ... };
-    return connection.execute(query1);
+    const query1 = { ... };
+    return session.execute(query1);
   })
   .then((query1Result) => {
     // do something with the results of the first query
-    var query2 = { ... };
-    return connection.execute(query);
+    const query2 = { ... };
+    return session.execute(query);
   })
   .then((query2Result) => {
     // do something with the results of the second query
   })
-  .then(() => connection.release('commit'));
+  .then(() => session.end('commit'));
 ```
 
-Do not commit or roll back transactions manually by executing `COMMIT` or `ROLLBACK` commands. This will confuse the connection object and bad things may happen.
+Do not commit or roll back transactions manually by executing `COMMIT` or `ROLLBACK` commands. This will confuse the session object and bad things may happen.
 
 #### Checking Connection State
-To check whether a connection is active, the following property can be used:
- ```JavaScript
-connection.isActive : boolean;
+To check whether a session is active, the following property can be used:
+ ```TypeScript
+session.isActive : boolean;
 ```
-A connection is considered to be active from the point it is created, and until the point it is released.
+A session is considered to be active from the point it is created (via `database.connect()` method), and until the point it is ended (via `session.end()` method).
 
-To check whether a connection is in transaction, the following property can be used:
+To check whether a session is in transaction, the following property can be used:
 
- ```JavaScript
-connection.inTransaction : boolean;
+ ```TypeScript
+session.inTransaction : boolean;
 ```
-A connection is considered to be in transaction from the point `startTransaction()` method is called, and until the point it is released via the `release()` method.
+A session is considered to be in transaction from the point `session.startTransaction()` method is called, and until the point it is ended via the `session.end()` method.
 
 ## Querying the Database
-Once a reference to a Connection object is obtained, it can be used to execute queries against the database using `connection.execute()` method:
+Once a reference to a `Session` object is obtained, it can be used to execute queries against the database using `session.execute()` method:
 
-```JavaScript
+```TypeScript
 // executes a single query - and return a promise for the result
 connection.execute(query) : Promise<any>;
 
@@ -193,12 +218,12 @@ connection.execute(query) : Promise<any>;
 connection.execute([query1, query2]) : Promise<Map>;
 ```
 
-A query object passed to the execute method should have the following form:
+A query object passed to the `execute()` method should have the following form:
 
-```
+```TypeScript
 {
     text    : string;
-    mask?   : string;
+    mask?   : 'list' | 'object';
     name?   : string;
     params? : any;
     handler?: ResultHandler;
@@ -217,11 +242,11 @@ The only required property for a query is `text`, however, the behavior of the `
 
 A few examples of executing different queries:
 
-```JavaScript
+```TypeScript
 var query1 = {
 	text: `UPDATE users SET username = 'User1' WHERE id = 1;`
 };
-connection.execute(query1).then((result) => {
+session.execute(query1).then((result) => {
   // query is executed, and the result object is undefined
 });
 
@@ -229,7 +254,7 @@ var query2 = {
 	text: 'SELECT * FROM users;',
 	mask: 'list'
 };
-connection.execute(query2).then((result) => {
+session.execute(query2).then((result) => {
   // result is an array of user objects
   var user1 = result[0];
 });
@@ -238,12 +263,12 @@ var query3 = {
 	text: 'SELECT * FROM users WHERE id = 1;',
 	mask: 'object'
 };
-connection.execute(query3).then((result) => {
+session.execute(query3).then((result) => {
   // result is a single user object
   var user1 = result;
 });
 
-connection.execute([query1, query2, query3]).then((result) => {
+session.execute([query1, query2, query3]).then((result) => {
   // result is a map layed out as follows:
   // result.get(undefined)[0] contains results from query2
   var user1 = result.get(undefined)[0][0];
@@ -266,7 +291,7 @@ var query5 = {
 	name: 'q2'
 };
 
-connection.execute([query4, query5]).then((result) => {
+session.execute([query4, query5]).then((result) => {
   // result is a map laid out as follows:
   // result.get(query4.name) contains results from query4
   var user1 = result.get(query4.name)[0];
@@ -288,7 +313,7 @@ var query = {
   }
 };
 
-connection.execute(query).then(() => {
+session.execute(query).then(() => {
   // the query is executed as
   // UPDATE users SET username = 'joe' WHERE id = 1;
 });
@@ -305,7 +330,9 @@ Safe parameters (e.g. booleans, numbers, safe strings) are inlined into the quer
     - if `valueOf()` method returns an object, the parameter is converted to string using `JSON.stringify()` and if the resulting string is safe, inlined; otherwise the query is executed as parametrized query
   * __arrays__ - arrays are parametrized same as objects
   * __null__ or __undefined__ - always inlined as 'null'
-  * __functions__ - not supported, will throw QueryError
+  * __functions__ - functions are parametrized as follwos:
+    - `valueOf()` mehtod is called on the function, and if it returns a pritive value, the value is inlined
+    - otherwise QueryError will be thrown
 
 It is also possible to parametrize arrays of primitives in a special way to make them useful for `IN` clauses. This can be done by using `[[]]` brackets. In this case, the parameterization logic is as follows:
 
@@ -314,7 +341,7 @@ It is also possible to parametrize arrays of primitives in a special way to make
  * all other array types (and arrays of mixed numbers and strings) are not supported and will throw QueryError
 
 Examples of array parametrization:
-```JavaScript
+```TypeScript
 var query1 = {
   text: 'SELECT * FROM users WHERE id IN ([[ids]]);',
   params: {
@@ -362,7 +389,7 @@ var query = {
   }
 };
 
-connection.execute(query).then((result) => {
+session.execute(query).then((result) => {
   // the result will contain an array of user IDs
 });
 ```
@@ -373,20 +400,20 @@ pg-io provides several customized errors which extend the built-in Error object 
 
   * __ConnectionError__, thrown when:
     - establishing a database connection fails
-    - an attempt to use an already released connection is made
-    - an attempt to release an already released connection is made
+    - an attempt to use an already ended session is made
+    - an attempt to end an already ended session is made
   * __TransactionError__, thrown when:
-    - an attempt is made to start a transaction on a connection which is already in transaction
-    - a connection is released without committing or rolling back an active transaction
+    - an attempt is made to start a transaction on in a session which is already in transaction
+    - a session is ended without committing or rolling back an active transaction
   * __QueryError__, thrown when:
     - executing of a query fails
   * __ParseError__, thrown when
     - parsing of query results fails
 
-If an error is thrown during query execution or query result parsing, the connection will be immediately released back to the pool. If a connection is in transaction, then the transaction is rolled back. Basically, any error generated within `connection.execute()` method will render the connection object useless and no further communication with the database through this connection object will be possible. The connection itself will be released to the pool so that it can be used by other clients.
+If an error is thrown during query execution or query result parsing, the session will be immediately ended. If a session is in transaction, then the transaction is rolled back. Basically, any error generated within `session.execute()` method will render the session object useless and no further communication with the database through this sessiont will be possible. The underlying connection will be released to the pool so that it can be used by other clients.
 
 ## License
-Copyright (c) 2015 Hercules Inc.
+Copyright (c) 2016 Hercules Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 

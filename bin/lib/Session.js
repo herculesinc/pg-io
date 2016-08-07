@@ -48,22 +48,22 @@ class Session {
             });
         }
     }
-    release(action) {
+    end(action) {
         if (!this.isActive) {
-            return Promise.reject(new errors_1.ConnectionError('Cannot release session: session has already been released'));
+            return Promise.reject(new errors_1.ConnectionError('Cannot end session: session has already ended'));
         }
         switch (action) {
             case 'commit':
-                this.logger && this.logger.debug('Committing transaction and releasing session back to the pool');
+                this.logger && this.logger.debug('Committing transaction and ending the session');
                 return this.execute(COMMIT_TRANSACTION)
                     .then(() => this.releaseConnection());
             case 'rollback':
-                this.logger && this.logger.debug('Rolling back transaction and releasing session back to the pool');
+                this.logger && this.logger.debug('Rolling back transaction and ending the session');
                 return this.rollbackAndRelease();
             default:
-                this.logger && this.logger.debug('Releasing session back to the pool');
+                this.logger && this.logger.debug('Ending the session');
                 if (this.inTransaction) {
-                    return this.rollbackAndRelease(new errors_1.TransactionError('Uncommitted transaction detected during session release'));
+                    return this.rollbackAndRelease(new errors_1.TransactionError('Uncommitted transaction detected while ending the session'));
                 }
                 else {
                     this.releaseConnection();
@@ -73,7 +73,7 @@ class Session {
     }
     execute(queryOrQueries) {
         if (this.isActive === false) {
-            return Promise.reject(new errors_1.ConnectionError('Cannot execute queries: session has been released'));
+            return Promise.reject(new errors_1.ConnectionError('Cannot execute queries: the session has ended'));
         }
         var start = process.hrtime();
         const { queries, command, transaction } = this.buildQueryList(queryOrQueries);

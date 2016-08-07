@@ -72,7 +72,7 @@ declare module "pg-io" {
         inTransaction   : boolean;
         
         startTransaction(lazy?: boolean)        : Promise<void>;
-        release(action?: 'commit' | 'rollback') : Promise<void>;
+        end(action?: 'commit' | 'rollback')     : Promise<void>;
         
         execute<T>(query: SingleResultQuery<T>) : Promise<T>
         execute<T>(query: ListResultQuery<T>)   : Promise<T[]>

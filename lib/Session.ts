@@ -80,25 +80,25 @@ export class Session {
         }
     }
 
-    release(action?: 'commit' | 'rollback'): Promise<any> {
+    end(action?: 'commit' | 'rollback'): Promise<any> {
         if (!this.isActive) {
             return Promise.reject(
-                new ConnectionError('Cannot release session: session has already been released'));
+                new ConnectionError('Cannot end session: session has already ended'));
         }
         
         switch (action) {
             case 'commit':
-                this.logger && this.logger.debug('Committing transaction and releasing session back to the pool');
+                this.logger && this.logger.debug('Committing transaction and ending the session');
                 return this.execute(COMMIT_TRANSACTION)
                     .then(() => this.releaseConnection());
             case 'rollback':
-                this.logger && this.logger.debug('Rolling back transaction and releasing session back to the pool');
+                this.logger && this.logger.debug('Rolling back transaction and ending the session');
                 return this.rollbackAndRelease();
             default:
-                this.logger && this.logger.debug('Releasing session back to the pool');
+                this.logger && this.logger.debug('Ending the session');
                 if (this.inTransaction) {
                     return this.rollbackAndRelease(
-                        new TransactionError('Uncommitted transaction detected during session release'));
+                        new TransactionError('Uncommitted transaction detected while ending the session'));
                 }
                 else {
                     this.releaseConnection();
@@ -116,7 +116,7 @@ export class Session {
     execute(queryOrQueries: Query | Query[]): Promise<any> {
         if (this.isActive === false) {
             return Promise.reject(
-                new ConnectionError('Cannot execute queries: session has been released'));
+                new ConnectionError('Cannot execute queries: the session has ended'));
         }
 
         var start = process.hrtime();
