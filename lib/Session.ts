@@ -80,7 +80,7 @@ export class Session {
         }
     }
 
-    end(action?: 'commit' | 'rollback'): Promise<any> {
+    close(action?: 'commit' | 'rollback'): Promise<any> {
         if (!this.isActive) {
             return Promise.reject(
                 new ConnectionError('Cannot end session: session has already ended'));

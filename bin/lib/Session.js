@@ -48,7 +48,7 @@ class Session {
             });
         }
     }
-    end(action) {
+    close(action) {
         if (!this.isActive) {
             return Promise.reject(new errors_1.ConnectionError('Cannot end session: session has already ended'));
         }

@@ -46,14 +46,14 @@ pg.connect().then((session) => {
         .then((results) => {
             // result is an array of user objects
         })
-        // end the session to release the connection back to the pool
-        .then(() => session.end());
+        // close the session to release the connection back to the pool
+        .then(() => session.close());
 });
 ```
 
 # API
 
-Please note that some interfaces have changed signficantly between 0.6 and 0.7 releases of pg-io.
+**Please note that some interfaces have changed signficantly between 0.6 and 0.7 releases of pg-io.**
 
 ## Obtaining Database Connection
 
@@ -126,10 +126,10 @@ Where `PoolState` has the following form:
 }
 ```
 
-**Connections must always be released** back to the pool after they are no longer needed by calling `session.end()` method (more on this below). If you do not release connections, connection pool will be exhausted and bad things will happen.
+**Connections must always be released** back to the pool after they are no longer needed by calling `session.close()` method (more on this below). If you do not release connections, connection pool will be exhausted and bad things will happen.
 
 ## Managing Transactions
-pg-io supports a simple transactions mechanism. Only one transaction is allowed per connection session. A transaction can be started at any point during the session, and must be committed or rolled back when the session is ended.
+pg-io supports a simple transactions mechanism. Only one transaction is allowed per connection session. A transaction can be started at any point during the session, and must be committed or rolled back when the session is closed.
 
 ### Entering Transaction Mode
 Starting a transaction can be done via the following method:
@@ -163,15 +163,15 @@ Do not start transactions manually by executing `BEGIN` commands. Doing so will 
 Transactions can be committed or rolled back by using the following method:
 
 ```TypeScript
-connection.end(action?: 'commit' | 'rollback') : Promise<void>;
+connection.close(action?: 'commit' | 'rollback') : Promise<void>;
 ```
 where `action` can be one of the following values:
 
   * 'commit' - if there is an active transaction it will be committed
   * 'rollback' - if there is an active transaction it will be rolled back
-  * undefined - if no transaction was started during the session, `end()` method can be called without `action` parameter. However, if the transaction is in progress, and `action` parameter is omitted, an error will be thrown and the active transaction will be rolled back before the connection is released back to the pool
+  * undefined - if no transaction was started during the session, `close()` method can be called without `action` parameter. However, if the transaction is in progress, and `action` parameter is omitted, an error will be thrown and the active transaction will be rolled back before the connection is released back to the pool
 
-Always call the `session.end()` method after session object is no longer needed. This will release the connection for use by other requests. If you do not release the connection, the connection pool will become exhausted and bad things will happen.  
+Always call the `session.close()` method after session object is no longer needed. This will release the connection for use by other requests. If you do not release the connection, the connection pool will become exhausted and bad things will happen.  
 
 In the example below, query1 and query2 are executed in the context of the same transaction, then transaction is committed and connection is released back to the pool.
 ```TypeScript
@@ -188,7 +188,7 @@ session.startTransaction()
   .then((query2Result) => {
     // do something with the results of the second query
   })
-  .then(() => session.end('commit'));
+  .then(() => session.close('commit'));
 ```
 
 Do not commit or roll back transactions manually by executing `COMMIT` or `ROLLBACK` commands. This will confuse the session object and bad things may happen.
@@ -198,14 +198,14 @@ To check whether a session is active, the following property can be used:
  ```TypeScript
 session.isActive : boolean;
 ```
-A session is considered to be active from the point it is created (via `database.connect()` method), and until the point it is ended (via `session.end()` method).
+A session is considered to be active from the point it is created (via `database.connect()` method), and until it is closed (via `session.close()` method).
 
 To check whether a session is in transaction, the following property can be used:
 
  ```TypeScript
 session.inTransaction : boolean;
 ```
-A session is considered to be in transaction from the point `session.startTransaction()` method is called, and until the point it is ended via the `session.end()` method.
+A session is considered to be in transaction from the point `session.startTransaction()` method is called, and until it is closed via the `session.close()` method.
 
 ## Querying the Database
 Once a reference to a `Session` object is obtained, it can be used to execute queries against the database using `session.execute()` method:
@@ -400,17 +400,17 @@ pg-io provides several customized errors which extend the built-in Error object 
 
   * __ConnectionError__, thrown when:
     - establishing a database connection fails
-    - an attempt to use an already ended session is made
-    - an attempt to end an already ended session is made
+    - an attempt to use an already closed session is made
+    - an attempt to close an already closed session is made
   * __TransactionError__, thrown when:
     - an attempt is made to start a transaction on in a session which is already in transaction
-    - a session is ended without committing or rolling back an active transaction
+    - a session is closed without committing or rolling back an active transaction
   * __QueryError__, thrown when:
     - executing of a query fails
   * __ParseError__, thrown when
     - parsing of query results fails
 
-If an error is thrown during query execution or query result parsing, the session will be immediately ended. If a session is in transaction, then the transaction is rolled back. Basically, any error generated within `session.execute()` method will render the session object useless and no further communication with the database through this sessiont will be possible. The underlying connection will be released to the pool so that it can be used by other clients.
+If an error is thrown during query execution or query result parsing, the session will be immediately closed. If a session is in transaction, then the transaction is rolled back. Basically, any error generated within `session.execute()` method will render the session object useless and no further communication with the database through this sessiont will be possible. The underlying connection will be released to the pool so that it can be used by other clients.
 
 ## License
 Copyright (c) 2016 Hercules Inc.
