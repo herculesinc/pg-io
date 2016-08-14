@@ -24,6 +24,11 @@ export interface Query extends QuerySpec {
     params? : any;
 }
 
+export interface ResultQuery<T> extends Query {
+    mask    : QueryMask;
+    handler?: ResultHandler<T>;
+}
+
 export interface SingleResultQuery<T> extends Query {
     mask    : 'object';
     handler?: ResultHandler<T>;
@@ -33,8 +38,6 @@ export interface ListResultQuery<T> extends Query {
     mask    : 'list';
     handler?: ResultHandler<T>;
 }
-
-export type ResultQuery<T> = SingleResultQuery<T> | ListResultQuery<T>;
 
 export interface DbQuery {
     text        : string;

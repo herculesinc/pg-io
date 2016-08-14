@@ -2,7 +2,9 @@
 // ================================================================================================
 import { Client, QueryResult } from 'pg';
 
-import { Query, SingleResultQuery, ListResultQuery, isParametrized, toDbQuery, DbQuery } from './Query';
+import {
+    Query, ResultQuery, SingleResultQuery, ListResultQuery, isParametrized, toDbQuery, DbQuery
+} from './Query';
 import { Collector } from './Collector';
 import { PgError, ConnectionError, TransactionError, QueryError, ParseError } from './errors';
 import { defaults } from './defaults';
@@ -83,22 +85,22 @@ export class Session {
     close(action?: 'commit' | 'rollback'): Promise<any> {
         if (!this.isActive) {
             return Promise.reject(
-                new ConnectionError('Cannot end session: session has already ended'));
+                new ConnectionError('Cannot close session: session has already been closed'));
         }
         
         switch (action) {
             case 'commit':
-                this.logger && this.logger.debug('Committing transaction and ending the session');
+                this.logger && this.logger.debug('Committing transaction and closing the session');
                 return this.execute(COMMIT_TRANSACTION)
                     .then(() => this.releaseConnection());
             case 'rollback':
-                this.logger && this.logger.debug('Rolling back transaction and ending the session');
+                this.logger && this.logger.debug('Rolling back transaction and closing the session');
                 return this.rollbackAndRelease();
             default:
-                this.logger && this.logger.debug('Ending the session');
+                this.logger && this.logger.debug('Closing the session');
                 if (this.inTransaction) {
                     return this.rollbackAndRelease(
-                        new TransactionError('Uncommitted transaction detected while ending the session'));
+                        new TransactionError('Uncommitted transaction detected while closing the session'));
                 }
                 else {
                     this.releaseConnection();
@@ -111,12 +113,13 @@ export class Session {
     // --------------------------------------------------------------------------------------------
     execute<T>(query: SingleResultQuery<T>): Promise<T>
     execute<T>(query: ListResultQuery<T>): Promise<T[]>
+    execute<T>(query: ResultQuery<T>): Promise<any>
     execute(query: Query): Promise<any>
     execute(queries: Query[]): Promise<Map<string, any>>
     execute(queryOrQueries: Query | Query[]): Promise<any> {
         if (this.isActive === false) {
             return Promise.reject(
-                new ConnectionError('Cannot execute queries: the session has ended'));
+                new ConnectionError('Cannot execute queries: the session is closed'));
         }
 
         var start = process.hrtime();

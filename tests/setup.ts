@@ -1,7 +1,7 @@
 ﻿// IMPORTS
 // ================================================================================================
 import { Session } from './../lib/Session';
-import { Query, ResultQuery, SingleResultQuery, ListResultQuery } from './../lib/Query';
+import { Query, SingleResultQuery, ListResultQuery, ResultHandler } from './../lib/Query';
 
 // INTERFACES
 // ================================================================================================
@@ -46,8 +46,9 @@ class qUpdateUser extends AbstractQuery {
 }
 
 export class qFetchUserById implements SingleResultQuery<User> {
-    text: string;
-    mask: 'object' = 'object';
+    text    : string;
+    mask    : 'object' = 'object';
+    handler : ResultHandler<User>;
 
     constructor(userId: number) {
         this.text = `
@@ -59,8 +60,9 @@ export class qFetchUserById implements SingleResultQuery<User> {
 }
 
 export class qFetchUsersByIdList implements ListResultQuery<User> {
-    text: string;
-    mask: 'list' = 'list';
+    text    : string;
+    mask    : 'list' = 'list';
+    handler : ResultHandler<User>;
 
     constructor(userIdList: number[]) {
         this.text = `

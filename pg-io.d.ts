@@ -76,10 +76,11 @@ declare module "pg-io" {
         
         execute<T>(query: SingleResultQuery<T>) : Promise<T>
         execute<T>(query: ListResultQuery<T>)   : Promise<T[]>
+        execute<T>(query: ResultQuery<T>)       : Promise<any>
         execute(query: Query)                   : Promise<void>;
         execute(queries: Query[])               : Promise<Map<string, any>>;
         
-        constructor(dbName: string, client: any, options?: SessionOptions, logger?: Logger);
+        constructor(dbName: string, client: any, options: SessionOptions, logger?: Logger);
         
         protected dbName        : string;
         protected options       : SessionOptions;
@@ -106,10 +107,15 @@ declare module "pg-io" {
         name?   : string;
     }
 
-    export interface Query extends QuerySpec{
+    export interface Query extends QuerySpec {
         params? : any;
     }
-    
+
+    export interface ResultQuery<T> extends Query {
+        mask    : QueryMask;
+        handler?: ResultHandler<T>;
+    }
+
     export interface SingleResultQuery<T> extends Query {
         mask    : 'object';
         handler?: ResultHandler<T>;
@@ -120,8 +126,6 @@ declare module "pg-io" {
         handler?: ResultHandler<T>;
     }
 
-    export type ResultQuery<T> = SingleResultQuery<T> | ListResultQuery<T>;
-    
     // SUPPORTING ENUMS AND INTERFACES
     // --------------------------------------------------------------------------------------------
     export const enum TransactionState {
