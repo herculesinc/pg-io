@@ -94,7 +94,6 @@ export class Session {
                 return this.execute(COMMIT_TRANSACTION)
                     .then(() => this.releaseConnection());
             case 'rollback':
-                this.logger && this.logger.debug('Rolling back transaction and closing the session');
                 return this.rollbackAndRelease();
             default:
                 this.logger && this.logger.debug('Closing the session');
@@ -103,8 +102,7 @@ export class Session {
                         new TransactionError('Uncommitted transaction detected while closing the session'));
                 }
                 else {
-                    this.releaseConnection();
-                    return Promise.resolve();
+                    return Promise.resolve(this.releaseConnection());
                 }
         }
     }
@@ -188,6 +186,7 @@ export class Session {
     }
     
     protected rollbackAndRelease(reason?: any): Promise<any> {
+        this.logger && this.logger.debug('Rolling back transaction and closing the session');
         return new Promise((resolve, reject) => {
             this.client.query(ROLLBACK_TRANSACTION.text, (error, results) => {
                 if (error) {
@@ -213,6 +212,7 @@ export class Session {
         this.transaction = undefined;
         this.client.release(error);
         this.client = undefined;
+        this.logger && this.logger.debug('Session closed');
     }
 
     // PRIVATE METHODS

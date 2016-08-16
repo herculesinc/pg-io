@@ -1,6 +1,6 @@
 {
   "name": "pg-io",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "Promise-based PostgreSQL client for node.js written in TypeScript",
   "keywords": [
     "pg",
@@ -27,10 +27,10 @@
     "pg": "6.0.x"
   },
   "devDependencies": {
-    "mocha": "2.5.x",
     "del": "2.2.x",
     "gulp": "3.9.x",
     "gulp-mocha": "2.2.x",
-    "gulp-util": "3.0.x"
+    "gulp-util": "3.0.x",
+    "mocha": "2.5.x"
   }
 }
