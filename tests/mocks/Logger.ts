@@ -1,6 +1,5 @@
 // IMPORTS
 // =================================================================================================
-import * as http from 'http';
 import { Logger } from './../../lib/util';
 
 // LOGGER CLASS

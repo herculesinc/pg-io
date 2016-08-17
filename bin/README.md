@@ -30,7 +30,7 @@ import { Database } from 'pg-io';
 const db = new Database({ /* database options */ });
 
 // get a connection session
-pg.connect().then((session) => {
+db.connect().then((session) => {
 
     // create a query object
     var query = {
@@ -60,7 +60,7 @@ pg.connect().then((session) => {
 pg-io exposes a `Database` class which can be created like so:
 
 ```JavaScript
-const db = Database(options, logger?);
+const db = new Database(options, logger?);
 ```
 where `options` should have the following form:
 ```TypeScript
@@ -101,7 +101,7 @@ Creation of the database object does not establish a database connection but rat
 Once a Database object is created, it can be used to acquire connection sessions from the pool like so:
 
 ```JavaScript
-database.connect(options?) : Promise<Connection>;
+database.connect(options?) : Promise<Session>;
 ```
 The method returns a promise for a `Session` object which represents a connection session. The optional `options` object has the following form:
 ```TypeScript
@@ -163,7 +163,7 @@ Do not start transactions manually by executing `BEGIN` commands. Doing so will 
 Transactions can be committed or rolled back by using the following method:
 
 ```TypeScript
-connection.close(action?: 'commit' | 'rollback') : Promise<void>;
+session.close(action?: 'commit' | 'rollback') : Promise<void>;
 ```
 where `action` can be one of the following values:
 
@@ -331,7 +331,7 @@ Safe parameters (e.g. booleans, numbers, safe strings) are inlined into the quer
   * __arrays__ - arrays are parametrized same as objects
   * __null__ or __undefined__ - always inlined as 'null'
   * __functions__ - functions are parametrized as follwos:
-    - `valueOf()` mehtod is called on the function, and if it returns a pritive value, the value is inlined
+    - `valueOf()` mehtod is called on the function, and if it returns a primitive value, the value is inlined
     - otherwise QueryError will be thrown
 
 It is also possible to parametrize arrays of primitives in a special way to make them useful for `IN` clauses. This can be done by using `[[]]` brackets. In this case, the parameterization logic is as follows:
@@ -379,7 +379,7 @@ var query3 = {
   
 #### Result Parsing
 
-It is possible to parse query results using custom logic by providing a ResultHandler object for a query. The handler object must have a single `parse()` method which takes a row as input and produces custom output. For example:
+It is possible to parse query results using custom logic by providing a `ResultHandler` object for a query. The handler object must have a single `parse()` method which takes a row as input and produces custom output. For example:
 
  ```JavaScript
 var query = {
