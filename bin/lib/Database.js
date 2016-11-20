@@ -21,18 +21,19 @@ class Database extends events.EventEmitter {
         // set basic properties
         this.name = options.name || defaults_1.defaults.name;
         this.Session = SessionCtr || defaults_1.defaults.SessionCtr;
+        this.sOptions = Object.assign({}, options.session, defaults_1.defaults.session);
         this.logger = logger;
         // initialize connection pool
         const connectionSettings = Object.assign({}, defaults_1.defaults.connection, options.connection);
         const poolOptions = Object.assign({}, defaults_1.defaults.pool, options.pool);
         this.pgPool = new pg.Pool(buildPgPoolOptions(connectionSettings, poolOptions));
         this.pgPool.on('error', (error) => {
-            // turn off error emitter because pgPool emits duplicate errors in various places
+            // turn off error emitter because pgPool emits duplicate errors when client creation fails
             // this.emit(ERROR_EVENT, error); 
         });
     }
     connect(options) {
-        options = Object.assign({}, defaults_1.defaults.session, options);
+        options = Object.assign({}, this.sOptions, options);
         const start = process.hrtime();
         this.logger && this.logger.debug(`Connecting to the database; pool state ${this.getPoolDescription()}`);
         return new Promise((resolve, reject) => {

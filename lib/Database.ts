@@ -16,6 +16,7 @@ const ERROR_EVENT = 'error';
 export interface DatabaseOptions {
     name?           : string;
     pool?           : PoolOptions;
+    session?        : SessionOptions;
     connection      : ConnectionSettings;
 }
 
@@ -46,6 +47,7 @@ export class Database extends events.EventEmitter {
     pgPool      : pg.Pool;
     logger?     : Logger;
     Session     : typeof Session;
+    sOptions    : SessionOptions;
 
     constructor(options: DatabaseOptions, logger?: Logger, SessionCtr?: typeof Session) {
         super();
@@ -56,6 +58,7 @@ export class Database extends events.EventEmitter {
         // set basic properties
         this.name = options.name || defaults.name;
         this.Session = SessionCtr || defaults.SessionCtr;
+        this.sOptions = Object.assign({}, options.session, defaults.session);
         this.logger = logger;
 
         // initialize connection pool
@@ -70,7 +73,7 @@ export class Database extends events.EventEmitter {
     }
 
     connect(options?: SessionOptions): Promise<Session> {
-        options = Object.assign({}, defaults.session, options);
+        options = Object.assign({}, this.sOptions, options);
         
         const start = process.hrtime();
         

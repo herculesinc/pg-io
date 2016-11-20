@@ -9,6 +9,7 @@ declare module "pg-io" {
     export interface DatabaseOptions {
         name?           : string;
         pool?           : PoolOptions;
+        session?        : SessionOptions;
         connection      : ConnectionSettings;
     }
 
