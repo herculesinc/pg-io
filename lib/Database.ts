@@ -64,7 +64,8 @@ export class Database extends events.EventEmitter {
         this.pgPool = new pg.Pool(buildPgPoolOptions(connectionSettings, poolOptions));
 
         this.pgPool.on('error', (error) => {
-           this.emit(ERROR_EVENT, error); 
+            // turn off error emitter because pgPool emits duplicate errors when client creation fails
+            // this.emit(ERROR_EVENT, error); 
         });
     }
 
@@ -86,6 +87,9 @@ export class Database extends events.EventEmitter {
                     poolAvailable   : this.pgPool.pool.availableObjectsCount()
                 });
                 resolve(session);
+            }).catch((error) => {
+                // ignore rejected promise returned from pgPool.connect() because
+                // the error is handled within the callback above
             });
         });
     }

@@ -57,7 +57,7 @@ declare module "pg" {
     export class Pool extends events.EventEmitter {
         pool: any;
         constructor(config: ClientConfig);
-        connect(callback: (err: Error, client: Client, done: (err: Error) => void) => void): Promise<Client>;
+        connect(callback?: (err: Error, client: Client, done: (err: Error) => void) => void): Promise<Client>;
         end(): Promise<any>;
     }
 

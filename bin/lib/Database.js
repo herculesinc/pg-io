@@ -27,7 +27,8 @@ class Database extends events.EventEmitter {
         const poolOptions = Object.assign({}, defaults_1.defaults.pool, options.pool);
         this.pgPool = new pg.Pool(buildPgPoolOptions(connectionSettings, poolOptions));
         this.pgPool.on('error', (error) => {
-            this.emit(ERROR_EVENT, error);
+            // turn off error emitter because pgPool emits duplicate errors in various places
+            // this.emit(ERROR_EVENT, error); 
         });
     }
     connect(options) {
@@ -45,6 +46,9 @@ class Database extends events.EventEmitter {
                     poolAvailable: this.pgPool.pool.availableObjectsCount()
                 });
                 resolve(session);
+            }).catch((error) => {
+                // ignore rejected promise returned from pgPool.connect() because
+                // the error is handled within the callback above
             });
         });
     }
