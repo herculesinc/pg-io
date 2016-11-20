@@ -1070,7 +1070,7 @@ describe('Error condition tests', function () {
     });
     
     it('Executing a query with invalid result parser should throw an error and close the session', () => {
-        var database = new Database(settings); 
+        var database = new Database(settings);
         return database.connect().then((session) => {
             return prepareDatabase(session).then(() => {
                 var query = {
@@ -1110,4 +1110,75 @@ describe('Error condition tests', function () {
             assert.ok(reason instanceof Error);
         });
     });
+
+    it('Executing two queries with errors should not crush the system', () => {
+        const database = new Database(settings);
+
+        return database.connect({ startTransaction: true}).then((session) => {
+            return prepareDatabase(session).then(() => {
+                const query = {
+                    text: 'SELECT * FROM tmp_users WHERE id = abc;',
+                    mask: 'list'
+                };
+
+                session.execute(query).catch((error) => {
+                    assert.strictEqual(error.message, 'column "abc" does not exist');
+                });
+                return session.execute(query).catch((error) => {
+                    assert.strictEqual(error.message, 'current transaction is aborted, commands ignored until end of transaction block');
+                });
+            });
+        });
+    });
+
+    it('Executing a query after commiting a transaction should throw an error', () => {
+        const database = new Database(settings);
+
+        return database.connect({ startTransaction: true}).then((session) => {
+            return prepareDatabase(session).then(() => {
+                const query = {
+                    text: 'SELECT * FROM tmp_users WHERE id = 1;',
+                    mask: 'list'
+                };
+
+                return session.execute(query).then((result) => {
+
+                    session.close('commit');
+                    return session.execute(query)
+                    .then(result => {
+                        assert.fail('Error was not thrown');
+                    })
+                    .catch((error) => {
+                        assert.strictEqual(error.message, 'Cannot execute queries: the session is closed');
+                    });
+                });
+            });
+        });
+    });
+
+    it('Executing a query after rolling back a transaction should throw an error', () => {
+        const database = new Database(settings);
+
+        return database.connect({ startTransaction: true}).then((session) => {
+            return prepareDatabase(session).then(() => {
+                const query = {
+                    text: 'SELECT * FROM tmp_users WHERE id = 1;',
+                    mask: 'list'
+                };
+
+                return session.execute(query).then((result) => {
+
+                    session.close('rollback');
+                    return session.execute(query)
+                    .then(result => {
+                        assert.fail('Error was not thrown');
+                    })
+                    .catch((error) => {
+                        assert.strictEqual(error.message, 'Cannot execute queries: the session is closed');
+                    });
+                });
+            });
+        });
+    });
+
 });

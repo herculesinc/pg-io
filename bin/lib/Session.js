@@ -15,6 +15,7 @@ class Session {
         this.client = client;
         this.options = options;
         this.logger = logger;
+        this.closing = false;
         if (this.options.startTransaction) {
             this.logger && this.logger.debug(`Starting database transaction in lazy mode`);
             this.transaction = 1 /* pending */;
@@ -26,7 +27,7 @@ class Session {
         return (this.transaction > 0);
     }
     get isActive() {
-        return (this.client != undefined);
+        return (this.client !== undefined && this.closing === false);
     }
     // LIFECYCLE METHODS
     // --------------------------------------------------------------------------------------------
@@ -55,8 +56,9 @@ class Session {
         switch (action) {
             case 'commit':
                 this.logger && this.logger.debug('Committing transaction and closing the session');
-                return this.execute(COMMIT_TRANSACTION)
-                    .then(() => this.releaseConnection());
+                const commitPromise = this.execute(COMMIT_TRANSACTION).then(() => this.releaseConnection());
+                this.closing = true;
+                return commitPromise;
             case 'rollback':
                 return this.rollbackAndRelease();
             default:
@@ -133,7 +135,7 @@ class Session {
     }
     rollbackAndRelease(reason) {
         this.logger && this.logger.debug('Rolling back transaction and closing the session');
-        return new Promise((resolve, reject) => {
+        const rollbackPromise = new Promise((resolve, reject) => {
             this.client.query(ROLLBACK_TRANSACTION.text, (error, results) => {
                 if (error) {
                     error = new errors_1.QueryError(error);
@@ -152,12 +154,19 @@ class Session {
                 }
             });
         });
+        this.closing = true;
+        return rollbackPromise;
     }
     releaseConnection(error) {
         this.transaction = undefined;
-        this.client.release(error);
-        this.client = undefined;
-        this.logger && this.logger.debug('Session closed');
+        if (this.client) {
+            this.client.release(error);
+            this.client = undefined;
+            this.logger && this.logger.debug('Session closed');
+        }
+        else {
+            this.logger && this.logger.warn('Overlapping connection release detected');
+        }
     }
     // PRIVATE METHODS
     // --------------------------------------------------------------------------------------------

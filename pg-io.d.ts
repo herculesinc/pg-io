@@ -86,6 +86,7 @@ declare module "pg-io" {
         protected options       : SessionOptions;
         protected transaction   : TransactionState;
         protected logger?       : Logger;
+        protected closing       : boolean;
 
         protected processQueryResult(query: Query, result: DbQueryResult): any[];
         protected rollbackAndRelease(reason?: any): Promise<any>;
