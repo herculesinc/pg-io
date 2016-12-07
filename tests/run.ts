@@ -43,4 +43,4 @@ async function runTests() {
     await session.close();
 }
 
-runTests();
+//runTests();
