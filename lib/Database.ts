@@ -59,7 +59,7 @@ export class Database extends events.EventEmitter {
         this.name = options.name || defaults.name;
         this.Session = SessionCtr || defaults.SessionCtr;
         this.sOptions = Object.assign({}, options.session, defaults.session);
-        this.logger = logger;
+        this.logger = validateLogger(logger);
 
         // initialize connection pool
         const connectionSettings = Object.assign({}, defaults.connection, options.connection);
@@ -109,6 +109,18 @@ export class Database extends events.EventEmitter {
 
 // HELPER FUNCTIONS
 // ================================================================================================
+function validateLogger(logger: Logger): Logger {
+    if (!logger) return undefined;
+
+    if (typeof logger !== 'object') throw new TypeError('Logger is invalid');
+    if (typeof logger.debug !== 'function') throw new TypeError('Logger is invalid');
+    if (typeof logger.info !== 'function') throw new TypeError('Logger is invalid');
+    if (typeof logger.warn !== 'function') throw new TypeError('Logger is invalid');
+    if (typeof logger.trace !== 'function') throw new TypeError('Logger is invalid');
+
+    return logger;
+}
+
 function buildPgPoolOptions(conn: ConnectionSettings, pool: PoolOptions): pg.ClientConfig {
     return {
         host        : conn.host,

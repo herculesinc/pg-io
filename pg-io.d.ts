@@ -158,11 +158,6 @@ declare module "pg-io" {
         debug(message: string, source?: string);
         info(message: string, source?: string);
         warn(message: string, source?: string);
-
-        error(error: Error);
-
-        log(event: string, properties?: { [key: string]: any });
-        track(metric: string, value: number);
         trace(source: string, command: string, time: number, success?: boolean);
     }
 }
