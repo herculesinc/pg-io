@@ -155,14 +155,14 @@ declare module "pg-io" {
     // LOGGER
     // --------------------------------------------------------------------------------------------
     export interface Logger {
-        debug(message: string);
-        info(message: string);
-        warn(message: string);
+        debug(message: string, source?: string);
+        info(message: string, source?: string);
+        warn(message: string, source?: string);
 
         error(error: Error);
 
         log(event: string, properties?: { [key: string]: any });
         track(metric: string, value: number);
-        trace(service: string, command: string, time: number, success?: boolean);
+        trace(source: string, command: string, time: number, success?: boolean);
     }
 }

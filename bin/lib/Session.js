@@ -17,7 +17,7 @@ class Session {
         this.logger = logger;
         this.closing = false;
         if (this.options.startTransaction) {
-            this.logger && this.logger.debug(`Starting database transaction in lazy mode`);
+            this.logger && this.logger.debug(`Starting database transaction in lazy mode`, this.dbName);
             this.transaction = 1 /* pending */;
         }
     }
@@ -38,7 +38,7 @@ class Session {
         if (this.inTransaction) {
             return Promise.reject(new errors_1.TransactionError('Cannot start transaction: session is already in transaction'));
         }
-        this.logger && this.logger.debug(`Starting database transaction in ${lazy ? 'lazy' : 'eager'} mode`);
+        this.logger && this.logger.debug(`Starting database transaction in ${lazy ? 'lazy' : 'eager'} mode`, this.dbName);
         if (lazy) {
             this.transaction = 1 /* pending */;
             return Promise.resolve();
@@ -55,14 +55,14 @@ class Session {
         }
         switch (action) {
             case 'commit':
-                this.logger && this.logger.debug('Committing transaction and closing the session');
+                this.logger && this.logger.debug('Committing transaction and closing the session', this.dbName);
                 const commitPromise = this.execute(COMMIT_TRANSACTION).then(() => this.releaseConnection());
                 this.closing = true;
                 return commitPromise;
             case 'rollback':
                 return this.rollbackAndRelease();
             default:
-                this.logger && this.logger.debug('Closing the session');
+                this.logger && this.logger.debug('Closing the session', this.dbName);
                 if (this.inTransaction) {
                     return this.rollbackAndRelease(new errors_1.TransactionError('Uncommitted transaction detected while closing the session'));
                 }
@@ -81,10 +81,10 @@ class Session {
             return Promise.resolve();
         if (this.options.logQueryText) {
             const queryText = buildQueryText(queries);
-            this.logger && this.logger.debug(`Executing ${queries.length} queries:\n${queryText}`);
+            this.logger && this.logger.debug(`Executing ${queries.length} queries:\n${queryText}`, this.dbName);
         }
         else {
-            this.logger && this.logger.debug(`Executing ${queries.length} queries: [${command}]`);
+            this.logger && this.logger.debug(`Executing ${queries.length} queries: [${command}]`, this.dbName);
         }
         return Promise.resolve()
             .then(() => this.buildDbQueries(queries))
@@ -104,7 +104,7 @@ class Session {
                     collector.addResult(query, this.processQueryResult(query, flatResults[i]));
                 }
                 this.transaction = transaction;
-                this.logger && this.logger.debug(`Query results processed in ${util_1.since(start)} ms`);
+                this.logger && this.logger.debug(`Query results processed in ${util_1.since(start)} ms`, this.dbName);
                 return collector.getResults();
             }
             catch (error) {
@@ -134,7 +134,7 @@ class Session {
         return processedResult;
     }
     rollbackAndRelease(reason) {
-        this.logger && this.logger.debug('Rolling back transaction and closing the session');
+        this.logger && this.logger.debug('Rolling back transaction and closing the session', this.dbName);
         const rollbackPromise = new Promise((resolve, reject) => {
             this.client.query(ROLLBACK_TRANSACTION.text, (error, results) => {
                 if (error) {
@@ -162,10 +162,10 @@ class Session {
         if (this.client) {
             this.client.release(error);
             this.client = undefined;
-            this.logger && this.logger.debug('Session closed');
+            this.logger && this.logger.debug('Session closed', this.dbName);
         }
         else {
-            this.logger && this.logger.warn('Overlapping connection release detected');
+            this.logger && this.logger.warn('Overlapping connection release detected', this.dbName);
         }
     }
     // PRIVATE METHODS

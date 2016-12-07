@@ -21,7 +21,7 @@
     "email": "irakliy81@live.com"
   },
   "engines": {
-    "node": "6.3.x"
+    "node": "6.9.x"
   },
   "dependencies": {
     "pg": "6.1.x"
