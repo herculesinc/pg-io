@@ -80,16 +80,11 @@ export class Database extends events.EventEmitter {
         this.logger && this.logger.debug(`Connecting to the database; pool state ${this.getPoolDescription()}`, this.name);
         return new Promise((resolve, reject) => {
             this.pgPool.connect((error, client) => {
+                this.logger && this.logger.trace(this.name, 'connected', since(start), !error);
                 if (error) return reject(new ConnectionError(error));
 
                 const session = new this.Session(this.name, client, options, this.logger);
-                this.logger && this.logger.trace(this.name, 'connected', since(start), true);
-                
                 resolve(session);
-            }).catch((error) => {
-                this.logger && this.logger.trace(this.name, 'connected', since(start), false);
-                // ignore rejected promise returned from pgPool.connect() because
-                // the error is handled within the callback above
             });
         });
     }
