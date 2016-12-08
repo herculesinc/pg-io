@@ -1,5 +1,5 @@
 "use strict";
-const Query_1 = require('./Query');
+const Query_1 = require("./Query");
 // CLASS DEFINITION
 // ================================================================================================
 class Collector {

@@ -1,5 +1,5 @@
 "use strict";
-const Session_1 = require('./Session');
+const Session_1 = require("./Session");
 // DEFAULTS
 // ================================================================================================
 exports.defaults = {

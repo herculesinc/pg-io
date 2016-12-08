@@ -1,11 +1,11 @@
 "use strict";
 // IMPORTS
 // ================================================================================================
-const events = require('events');
-const pg = require('pg');
-const errors_1 = require('./errors');
-const defaults_1 = require('./defaults');
-const util_1 = require('./util');
+const events = require("events");
+const pg = require("pg");
+const errors_1 = require("./errors");
+const defaults_1 = require("./defaults");
+const util_1 = require("./util");
 // MODULE VARIABLES
 // ================================================================================================
 const ERROR_EVENT = 'error';

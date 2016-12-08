@@ -1,8 +1,8 @@
 "use strict";
-const Query_1 = require('./Query');
-const Collector_1 = require('./Collector');
-const errors_1 = require('./errors');
-const util_1 = require('./util');
+const Query_1 = require("./Query");
+const Collector_1 = require("./Collector");
+const errors_1 = require("./errors");
+const util_1 = require("./util");
 // SESSION CLASS DEFINITION
 // ================================================================================================
 class Session {
