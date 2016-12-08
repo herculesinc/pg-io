@@ -103,6 +103,7 @@ declare module "pg-io" {
     // QUERY
     // --------------------------------------------------------------------------------------------
     export type QueryMask = 'list' | 'object';
+    export type QueryMode = 'object' | 'array';
 
     export interface QuerySpec {
         text    : string;
@@ -115,6 +116,7 @@ declare module "pg-io" {
 
     export interface ResultQuery<T> extends Query {
         mask    : QueryMask;
+        mode?   : QueryMode;
         handler?: ResultHandler<T>;
     }
 

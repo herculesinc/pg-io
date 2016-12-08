@@ -10,6 +10,7 @@ const ARRAY_PARAM_PATTERN = /\[\[([a-z0-9\$_]+)\]\]/gi;
 // INTERFACES
 // ================================================================================================
 export type QueryMask = 'list' | 'object';
+export type QueryMode = 'object' | 'array';
 
 export interface ResultHandler<T> {
     parse(row: any): T;
@@ -26,6 +27,7 @@ export interface Query extends QuerySpec {
 
 export interface ResultQuery<T> extends Query {
     mask    : QueryMask;
+    mode?   : QueryMode;
     handler?: ResultHandler<T>;
 }
 
@@ -101,12 +103,14 @@ export function toDbQuery(query: Query): DbQuery {
         
         return {
             text    : formatQueryText(text),
+            rowMode : (query as ResultQuery<any>).mode === 'array' ? 'array' : undefined,
             values  : params.length > 0 ? params : undefined,
         };
     }
     else {
         return {
-            text    : formatQueryText(query.text)
+            text    : formatQueryText(query.text),
+            rowMode : (query as ResultQuery<any>).mode === 'array' ? 'array' : undefined
         };
     }
 }

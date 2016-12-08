@@ -3,7 +3,7 @@
 import * as assert from 'assert';
 import { Database } from './../index';
 import { ListResultQuery, SingleResultQuery } from './../lib/Query';
-import { User, prepareDatabase, qFetchUserById, qFetchUsersByIdList } from './setup';
+import { User, prepareDatabase, qFetchUserById, qFetchRawUserById, qFetchUsersByIdList } from './setup';
 import { MockLogger } from './mocks/Logger';
 
 // OPTIONS
@@ -37,10 +37,11 @@ async function runTests() {
     const session = await database.connect(sessionOpts);
     await prepareDatabase(session);
 
-    const result = await session.execute(new qFetchUserById(1));
-    console.log(JSON.stringify(result));
+    //const result = await session.execute(new qFetchUserById(1));
+    //const results = await session.execute(new qFetchUsersByIdList([1, 2]));
 
-    const results = await session.execute(new qFetchUsersByIdList([1, 2]));
+    const rawResult = await session.execute(new qFetchRawUserById(1));
+    console.log(rawResult);
 
     await session.close();
 }

@@ -59,6 +59,19 @@ export class qFetchUserById implements SingleResultQuery<User> {
     get name(): string { return (<any> this).constructor.name; }
 }
 
+export class qFetchRawUserById implements SingleResultQuery<any[]> {
+    text    : string;
+    mask    : 'object' = 'object';
+    mode    : 'array' = 'array';
+    handler : ResultHandler<any[]>;
+
+    constructor(userId: number) {
+        this.text = `
+            SELECT id, username, created_on AS "createdOn", updated_on AS "updatedOn"
+            FROM tmp_users WHERE id = ${userId};`;
+    }
+}
+
 export class qFetchUsersByIdList implements ListResultQuery<User> {
     text    : string;
     mask    : 'list' = 'list';

@@ -54,12 +54,14 @@ function toDbQuery(query) {
         });
         return {
             text: formatQueryText(text),
+            rowMode: query.mode === 'array' ? 'array' : undefined,
             values: params.length > 0 ? params : undefined,
         };
     }
     else {
         return {
-            text: formatQueryText(query.text)
+            text: formatQueryText(query.text),
+            rowMode: query.mode === 'array' ? 'array' : undefined
         };
     }
 }
