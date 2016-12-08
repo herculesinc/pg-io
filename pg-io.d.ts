@@ -118,14 +118,12 @@ declare module "pg-io" {
         handler?: ResultHandler<T>;
     }
 
-    export interface SingleResultQuery<T> extends Query {
+    export interface SingleResultQuery<T> extends ResultQuery<T> {
         mask    : 'object';
-        handler?: ResultHandler<T>;
     }
 
-    export interface ListResultQuery<T> extends Query {
+    export interface ListResultQuery<T> extends ResultQuery<T> {
         mask    : 'list';
-        handler?: ResultHandler<T>;
     }
 
     // SUPPORTING ENUMS AND INTERFACES

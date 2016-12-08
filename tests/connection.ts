@@ -2,7 +2,7 @@
 // ================================================================================================
 import * as assert from 'assert';
 import { Database } from './../index';
-import { ListResultQuery, SingleResultQuery } from './../lib/Query';
+import { Query, ListResultQuery, SingleResultQuery } from './../lib/Query';
 import { PgError, ConnectionError, TransactionError, QueryError, ParseError } from './../lib/errors';
 import { User, prepareDatabase, qFetchUserById, qFetchUsersByIdList } from './setup';
 import { settings } from './settings';
@@ -33,7 +33,7 @@ describe('Object query tests', function() {
     it('Object query should return undefined on no rows', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-            var query = {
+            var query: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 0;',
                     mask: 'object',
                     name: 'getUserById'
@@ -49,13 +49,13 @@ describe('Object query tests', function() {
     it('Multiple object queries should produce a Map of objects', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query1 = {
+                var query1: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
                     mask: 'object',
                     name: 'query1'
                 };
                 
-                var query2 = {
+                var query2: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 2;',
                     mask: 'object',
                     name: 'query2'
@@ -75,19 +75,19 @@ describe('Object query tests', function() {
     it('Multiple object queries with the same name should produce a Map with a single key', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query1 = {
+                var query1: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
                     mask: 'object',
                     name: 'getUserById'
                 };
                 
-                var query2 = {
+                var query2: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 2;',
                     mask: 'object',
                     name: 'getUserById'
                 };
                 
-                var query3 = {
+                var query3: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 3;',
                     mask: 'object',
                     name: 'getUserById'
@@ -107,17 +107,17 @@ describe('Object query tests', function() {
     it('Unnamed object queries should aggregate into undefined key', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query1 = {
+                var query1: SingleResultQuery<User> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 1;',
                     mask: 'object'
                 };
 
-                var query2 = {
+                var query2: SingleResultQuery<User> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 3;',
                     mask: 'object'
                 };
                 
-                var query3 = {
+                var query3: SingleResultQuery<User> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 3;',
                     mask: 'object',
                     name: 'test'
@@ -139,19 +139,19 @@ describe('Object query tests', function() {
     it('Multiple object queries should not produce an array with holes', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query1 = {
+                var query1: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
                     mask: 'object',
                     name: 'getUserById'
                 };
                 
-                var query2 = {
+                var query2: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 0;',
                     mask: 'object',
                     name: 'getUserById'
                 };
                 
-                var query3 = {
+                var query3: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 3;',
                     mask: 'object',
                     name: 'getUserById'
@@ -171,7 +171,7 @@ describe('Object query tests', function() {
     it('Object query with a handler should be parsed using custom parsing method', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query = {
+                var query: SingleResultQuery<number> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 1;',
                     mask: 'object',
                     handler: {
@@ -189,7 +189,7 @@ describe('Object query tests', function() {
     it('Multiple object queries with a handler should be parsed using custom parsing method', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query1 = {
+                var query1: SingleResultQuery<number> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 1;',
                     mask: 'object',
                     handler: {
@@ -197,7 +197,7 @@ describe('Object query tests', function() {
                     }
                 };
                 
-                var query2 = {
+                var query2: SingleResultQuery<number> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 2;',
                     mask: 'object',
                     handler: {
@@ -223,7 +223,7 @@ describe('List query tests', function () {
     it('List query should return an array of objects', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query = {
+                var query: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (1, 3);',
                     mask: 'list'
                 };
@@ -242,7 +242,7 @@ describe('List query tests', function () {
     it('List query should return an empty array on no rows', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query = {
+                var query: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (0);',
                     mask: 'list'
                 };
@@ -257,13 +257,13 @@ describe('List query tests', function () {
     it('Multiple list queries should produce a Map of arrays', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query1 = {
+                var query1: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (1, 2);',
                     mask: 'list',
                     name: 'query1'
                 };
                 
-                var query2 = {
+                var query2: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (3);',
                     mask: 'list',
                     name: 'query2'
@@ -289,13 +289,13 @@ describe('List query tests', function () {
     it('Multiple list queries with the same name should produce a Map with a single key', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query1 = {
+                var query1: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (1, 2);',
                     mask: 'list',
                     name: 'query'
                 };
                 
-                var query2 = {
+                var query2: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (3);',
                     mask: 'list',
                     name: 'query'
@@ -321,19 +321,19 @@ describe('List query tests', function () {
     it('Multiple list queries with the same name should produce an array for every query', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query1 = {
+                var query1: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (1, 2);',
                     mask: 'list',
                     name: 'query'
                 };
                 
-                var query2 = {
+                var query2: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (0);',
                     mask: 'list',
                     name: 'query'
                 };
                 
-                var query3 = {
+                var query3: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (3);',
                     mask: 'list',
                     name: 'query'
@@ -361,12 +361,12 @@ describe('List query tests', function () {
     it('Unnamed list queries should aggregte into undefined key', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query1 = {
+                var query1: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (1, 2);',
                     mask: 'list'
                 };
                 
-                var query2 = {
+                var query2: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (3);',
                     mask: 'list'
                 };
@@ -391,7 +391,7 @@ describe('List query tests', function () {
     it('List query with a handler should be parsed using custom parsing mehtod', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query = {
+                var query: ListResultQuery<number> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id IN (1,2);',
                     mask: 'list',
                     handler: {
@@ -416,7 +416,7 @@ describe('Non-result query tests', function () {
     it('A non-result query should produce no results', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query = {
+                var query: Query = {
                     text: `UPDATE tmp_users SET username = 'irakliy' WHERE username = 'irakliy';`
                 };
                 return session.execute(query).then((result) => {
@@ -429,7 +429,7 @@ describe('Non-result query tests', function () {
     it('Multiple non-result queries should produce no results', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query = {
+                var query: Query = {
                     text: `UPDATE tmp_users SET username = 'irakliy' WHERE username = 'irakliy';`
                 };
                 return session.execute([query, query]).then((results) => {
@@ -447,13 +447,13 @@ describe('Mixed query tests', function () {
     it('Multiple mixed queries should produce a Map of results', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query1 = {
+                var query1: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 2;',
                     mask: 'object',
                     name: 'query1'
                 };
                 
-                var query2 = {
+                var query2: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (1, 3);',
                     mask: 'list',
                     name: 'query2'
@@ -479,17 +479,17 @@ describe('Mixed query tests', function () {
     it('Unnamed mixed queries should aggregate into undefined key', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query1 = {
+                var query1: SingleResultQuery<{ id: number, username: string }> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 1;',
                     mask: 'object'
                 };
 
-                var query2 = {
+                var query2: ListResultQuery<{ id: number, username: string }> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id IN (2, 3);',
                     mask: 'list'
                 };
 
-                var query3 = {
+                var query3: ListResultQuery<{ id: number, username: string }> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id IN (2, 3);',
                     mask: 'list',
                     name: 'test'
@@ -516,21 +516,21 @@ describe('Mixed query tests', function () {
     it('Unnamed non-result queries should not produce holes in result array', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query1 = {
+                var query1: SingleResultQuery<{ id: number, username: string }> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 1;',
                     mask: 'object'
                 };
 
-                var query2 = {
+                var query2: Query = {
                     text: `UPDATE tmp_users SET username = 'irakliy' WHERE username = 'irakliy';`
                 };
 
-                var query3 = {
+                var query3: ListResultQuery<{ id: number, username: string }> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id IN (2, 3);',
                     mask: 'list'
                 };
                 
-                var query4 = {
+                var query4: ListResultQuery<{ id: number, username: string }> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id IN (2, 3);',
                     mask: 'list',
                     name: 'test'
@@ -562,7 +562,7 @@ describe('Parametrized query tests', function () {
     it('Object query parametrized with number should retrive correct row', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query = {
+                var query: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = {{id}};',
                     mask: 'object',
                     params: {
@@ -581,7 +581,7 @@ describe('Parametrized query tests', function () {
     it('Object query parametrized with string should retrive correct row', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query = {
+                var query: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE username = {{username}};',
                     mask: 'object',
                     params: {
@@ -600,7 +600,7 @@ describe('Parametrized query tests', function () {
     it('Object query parametrized with unsafe string should retrive correct row', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query = {
+                var query: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE username = {{username}};',
                     mask: 'object',
                     params: {
@@ -619,19 +619,19 @@ describe('Parametrized query tests', function () {
     it('Mix of parametrized and non-parametrized queries should return correct result map', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query1 = {
+                var query1: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
                     mask: 'object',
                     name: 'query1'
                 };
                 
-                var query2 = {
+                var query2: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 2;',
                     mask: 'object',
                     name: 'query2'
                 };
                 
-                var query3 = {
+                var query3: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE username = {{username}};',
                     mask: 'object',
                     name: 'query3',
@@ -640,7 +640,7 @@ describe('Parametrized query tests', function () {
                     }
                 };
                 
-                var query4 = {
+                var query4: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 3;',
                     mask: 'object',
                     name: 'query4'
@@ -672,13 +672,13 @@ describe('Parametrized query tests', function () {
     it('Two parametrized queries in a row should produce correct result', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query1 = {
+                var query1: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
                     mask: 'object',
                     name: 'query1'
                 };
                 
-                var query2 = {
+                var query2: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE username = {{username}};',
                     mask: 'object',
                     name: 'query2',
@@ -687,7 +687,7 @@ describe('Parametrized query tests', function () {
                     }
                 };
                 
-                var query3 = {
+                var query3: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = {{id}};',
                     mask: 'object',
                     name: 'query3',
@@ -696,7 +696,7 @@ describe('Parametrized query tests', function () {
                     }
                 };
                 
-                var query4 = {
+                var query4: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 3;',
                     mask: 'object',
                     name: 'query4'
@@ -792,7 +792,7 @@ describe('Session lifecycle tests', function () {
         return database.connect().then((session) => {
             return prepareDatabase(session).then(()=> {
                 return session.startTransaction().then(() => {
-                    var query = {
+                    var query: Query = {
                         text: 'UPDATE tmp_users SET username = {{un}} WHERE id = 1;',
                         params: {
                             un: 'Test'
@@ -810,7 +810,7 @@ describe('Session lifecycle tests', function () {
         })
         .then(() => {
             return database.connect().then((session) => {
-                var query = {
+                var query: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
                     mask: 'object'
                 };
@@ -827,7 +827,7 @@ describe('Session lifecycle tests', function () {
         return database.connect().then((session) => {
             return prepareDatabase(session).then(()=> {
                 return session.startTransaction().then(() => {
-                    var query = {
+                    var query: Query = {
                         text: 'UPDATE tmp_users SET username = {{un}} WHERE id = 1;',
                         params: {
                             un: 'Test'
@@ -845,7 +845,7 @@ describe('Session lifecycle tests', function () {
         })
         .then(() => {
             return database.connect().then((session) => {
-                var query = {
+                var query: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
                     mask: 'object'
                 };
@@ -891,7 +891,7 @@ describe('Error condition tests', function () {
         return database.connect().then((session) => {
             return prepareDatabase(session).then(()=> {
                 return session.startTransaction().then(() => {
-                    var query = {
+                    var query: Query = {
                         text: `UPDATE tmp_users SET username = 'Test' WHERE id = 1;`
                     };
                     
@@ -915,7 +915,7 @@ describe('Error condition tests', function () {
         })
         .then(() => {
             return database.connect().then((session) => {
-                var query = {
+                var query: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
                     mask: 'object'
                 };
@@ -1003,7 +1003,7 @@ describe('Error condition tests', function () {
         return database.connect().then((session) => {
             return prepareDatabase(session).then(() => {
                 return session.close().then(() => {
-                   var query = {
+                   var query: Query = {
                         text: undefined    
                     };
                 
@@ -1027,7 +1027,7 @@ describe('Error condition tests', function () {
         var database = new Database(settings); 
         return database.connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query = {
+                var query: Query = {
                     text: undefined    
                 };
                 
@@ -1050,7 +1050,7 @@ describe('Error condition tests', function () {
         var database = new Database(settings); 
         return database.connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query = {
+                var query: Query = {
                     text: 'SELLECT * FROM tmp_users;'    
                 };
                 
@@ -1073,7 +1073,7 @@ describe('Error condition tests', function () {
         var database = new Database(settings);
         return database.connect().then((session) => {
             return prepareDatabase(session).then(() => {
-                var query = {
+                var query: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
                     mask: 'list',
                     handler: {
@@ -1116,7 +1116,7 @@ describe('Error condition tests', function () {
 
         return database.connect({ startTransaction: true}).then((session) => {
             return prepareDatabase(session).then(() => {
-                const query = {
+                const query: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = abc;',
                     mask: 'list'
                 };
@@ -1136,7 +1136,7 @@ describe('Error condition tests', function () {
 
         return database.connect({ startTransaction: true}).then((session) => {
             return prepareDatabase(session).then(() => {
-                const query = {
+                const query: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
                     mask: 'list'
                 };
@@ -1161,7 +1161,7 @@ describe('Error condition tests', function () {
 
         return database.connect({ startTransaction: true}).then((session) => {
             return prepareDatabase(session).then(() => {
-                const query = {
+                const query: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
                     mask: 'list'
                 };
