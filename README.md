@@ -53,7 +53,9 @@ db.connect().then((session) => {
 
 # API
 
-**Please note that some interfaces have changed signficantly between 0.6 and 0.7 releases of pg-io.**
+**Breaking changes**
+* Many interfaces have changed signficantly between 0.6 and 0.7
+* Query `mask` values have been redefined in version 0.8
 
 ## Obtaining Database Connection
 
@@ -65,33 +67,32 @@ const db = new Database(options, logger?);
 where `options` should have the following form:
 ```TypeScript
 {
-    name?             : string;   // defaults to 'database', used for logging
-    pool?: {                      // optional connection pool settings
-        maxSize?      : number;   // defaults to 20   
-        idleTimeout?  : number;   // defaults to 30000 milliseconds
-        reapInterval? : number;   // defaults to 1000 milliseconds
+    name?               : string;   // defaults to 'database', used for logging
+    pool?: {                        // optional connection pool settings
+        maxSize?        : number;   // defaults to 20   
+        idleTimeout?    : number;   // defaults to 30000 milliseconds
+        reapInterval?   : number;   // defaults to 1000 milliseconds
     };
-    connection: {                 // required connection settings
-        host          : string;
-        port?         : number;   // optional, default 5432
-        user          : string;
-        password      : string;
-        database      : string;
-    }
+    connection: {                   // required connection settings
+        host            : string;
+        port?           : number;   // optional, default 5432
+        user            : string;
+        password        : string;
+        database        : string;
+    };
+    session: {                        // optional default session options
+      startTransaction? : boolean;    // defaults to false
+      logQueryText?     : boolean;    // defaults to false
+    };
 }
 ```
 and, if provided, `logger` must comply with the following interface:
 ```TypeScript
 interface Logger {
-    debug(message: string);
-    info(message: string);
-    warn(message: string);
-
-    error(error: Error);
-
-    log(event: string, properties?: { [key: string]: any });
-    track(metric: string, value: number);
-    trace(service: string, command: string, time: number, success?: boolean);
+    debug(message: string, source?: string);
+    info(message: string, source?: string);
+    warn(message: string, source?: string);
+    trace(source: string, command: string, time: number, success?: boolean);
 }
 ```
 
@@ -223,22 +224,24 @@ A query object passed to the `execute()` method should have the following form:
 ```TypeScript
 {
     text    : string;
-    mask?   : 'list' | 'object';
+    mask?   : 'list' | 'single';
+    mode?   : 'object' | 'array';
     name?   : string;
     params? : any;
     handler?: ResultHandler;
 }
 ```
 
-The only required property for a query is `text`, however, the behavior of the `execute()` method is directly controlled by other query properties. The behaviors are as follows:
+The only required property for a query is `text`, however, the behavior of the `execute()` method is directly controlled by other query properties. The meaning of the properties is as follows:
 
-  * If only `text` property is provided: query will be executed against the database but no results will be returned to the user (even for SELECT statements). This is suitable for executing most INSERT, UPDATE, and DELETE commands
-  * `mask` property is provided: query will be executed and the results will be returned to the user. This is suitable for executing most SELECT commands. `mask` property can have one of the following values:
-    * 'list' - an array of rows retrieved from the database will be returned to the user (or `[]` if no rows were returned)
-    * 'object' - first row retrieved from the database will be returned to the user (or `undefined` if no rows were returned)
-  * `name` property is provided: when `execute()` is called with an array of queries, the returned map of results will be indexed by query name. For queries which don't have a name, the results will be held under the `undefined` key. If several executed queries have the same name, an array of results will be stored under the key for that name
-  * `params` - query will be parametrized with the provided object (more info below)
-  * `handler` - query results will be parsed using custom logic (more info below)
+| Property | Type    | Description |
+| -------  | ------- | ----------- |
+| text     | string  | SQL code to be executed against the database |
+| mask     | enum?   | Optional result mask; can be one of the following values: [`list`, `single`]. If `mask` is not provided, no results will be returned to the caller (even for SELECT statements).<br>When `mask=list`,  an array of rows retrieved from the database will be returned to the caller (or [] if no rows were returned).<br/>When `mask=single`, first row retrieved from the database will be returned to the caller (or undefined if no rows were returned) |
+| mode     | enum?   | Optional row mode; can be one of the following values: [`object`, `array`]; default is `object`. When `mode=object`, each row will be returned as an object with property keys being field names; when `mode=array` each row will be returned as an array of values (without the field names) |
+| name     | string? | Optional query name; used for logging. Also, when `execute()` is called with an array of queries, the returned map of results will be indexed by query name. For queries which don't have a name, the results will be held under the `undefined` key. If several executed queries have the same name, an array of results will be stored under the key for that name |
+| params   | object? | Optional query parameters to apply to to the query (see [parametarization](#parmetrized-queries)) 
+| handler  | <[ResultHandler](#result-parsing)> | Optional result handler to apply custom parsing logic | 
 
 A few examples of executing different queries:
 
@@ -261,7 +264,7 @@ session.execute(query2).then((result) => {
 
 var query3 = {
 	text: 'SELECT * FROM users WHERE id = 1;',
-	mask: 'object'
+	mask: 'single'
 };
 session.execute(query3).then((result) => {
   // result is a single user object
@@ -287,7 +290,7 @@ var query4 = {
 
 var query5 = {
 	text: 'SELECT * FROM users WHERE id = 1;',
-	mask: 'object',
+	mask: 'single',
 	name: 'q2'
 };
 
