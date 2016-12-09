@@ -9,7 +9,7 @@ const ARRAY_PARAM_PATTERN = /\[\[([a-z0-9\$_]+)\]\]/gi;
 function Query(spec, params, mask) {
     if (!spec)
         return undefined;
-    if (mask && (mask !== 'list' || 'object')) {
+    if (mask && (mask !== 'list' || 'single')) {
         throw new errors_1.QueryError(`Invalid query mask: value '${mask}' is not supported`);
     }
     return {
@@ -22,7 +22,7 @@ function Query(spec, params, mask) {
 exports.Query = Query;
 function isResultQuery(query) {
     const queryMask = query['mask'];
-    if (queryMask === 'object' || queryMask === 'list') {
+    if (queryMask === 'single' || queryMask === 'list') {
         return true;
     }
     else if (queryMask) {

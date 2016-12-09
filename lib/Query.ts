@@ -9,7 +9,7 @@ const ARRAY_PARAM_PATTERN = /\[\[([a-z0-9\$_]+)\]\]/gi;
 
 // INTERFACES
 // ================================================================================================
-export type QueryMask = 'list' | 'object';
+export type QueryMask = 'list' | 'single';
 export type QueryMode = 'object' | 'array';
 
 export interface ResultHandler<T> {
@@ -32,7 +32,7 @@ export interface ResultQuery<T> extends Query {
 }
 
 export interface SingleResultQuery<T> extends ResultQuery<T> {
-    mask    : 'object';
+    mask    : 'single';
 }
 
 export interface ListResultQuery<T> extends ResultQuery<T> {
@@ -50,11 +50,11 @@ export interface DbQuery {
 // ================================================================================================
 export function Query(spec: QuerySpec, params?: any): Query
 export function Query<T>(spec: QuerySpec, params?: any, mask?: 'list'): ListResultQuery<T>
-export function Query<T>(spec: QuerySpec, params?: any, mask?: 'object'): SingleResultQuery<T>
+export function Query<T>(spec: QuerySpec, params?: any, mask?: 'single'): SingleResultQuery<T>
 export function Query(spec: QuerySpec, params?: any, mask?: QueryMask): Query | ResultQuery<any> {
     if (!spec) return undefined;
     
-    if (mask && (mask !== 'list' || 'object')) {
+    if (mask && (mask !== 'list' || 'single')) {
         throw new QueryError(`Invalid query mask: value '${mask}' is not supported`);
     }
 
@@ -68,7 +68,7 @@ export function Query(spec: QuerySpec, params?: any, mask?: QueryMask): Query | 
 
 export function isResultQuery(query: Query): query is ResultQuery<any> {
     const queryMask = query['mask'];
-    if (queryMask === 'object' || queryMask === 'list') {
+    if (queryMask === 'single' || queryMask === 'list') {
         return true;
     }
     else if (queryMask) {

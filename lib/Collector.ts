@@ -33,7 +33,7 @@ export class Collector {
     	if (result == undefined || this.results.has(query.name) === false) return;
 
 		if (isResultQuery(query)) {
-			if (query.mask === 'object') {
+			if (query.mask === 'single') {
 				result = result ? result[0] : undefined;
 				if (result == undefined) return undefined;
             }

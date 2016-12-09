@@ -47,7 +47,7 @@ class qUpdateUser extends AbstractQuery {
 
 export class qFetchUserById implements SingleResultQuery<User> {
     text    : string;
-    mask    : 'object' = 'object';
+    mask    : 'single' = 'single';
     handler : ResultHandler<User>;
 
     constructor(userId: number) {
@@ -61,7 +61,7 @@ export class qFetchUserById implements SingleResultQuery<User> {
 
 export class qFetchRawUserById implements SingleResultQuery<any[]> {
     text    : string;
-    mask    : 'object' = 'object';
+    mask    : 'single' = 'single';
     mode    : 'array' = 'array';
     handler : ResultHandler<any[]>;
 

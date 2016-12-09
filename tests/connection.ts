@@ -16,7 +16,7 @@ describe('Object query tests', function() {
             return prepareDatabase(session).then(() => {
                 var query: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'getUserById'
                 };
                 
@@ -35,7 +35,7 @@ describe('Object query tests', function() {
             return prepareDatabase(session).then(() => {
             var query: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 0;',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'getUserById'
                 };
                 
@@ -51,13 +51,13 @@ describe('Object query tests', function() {
             return prepareDatabase(session).then(() => {
                 var query1: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'query1'
                 };
                 
                 var query2: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 2;',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'query2'
                 };
                 
@@ -77,19 +77,19 @@ describe('Object query tests', function() {
             return prepareDatabase(session).then(() => {
                 var query1: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'getUserById'
                 };
                 
                 var query2: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 2;',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'getUserById'
                 };
                 
                 var query3: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 3;',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'getUserById'
                 };
                 
@@ -109,17 +109,17 @@ describe('Object query tests', function() {
             return prepareDatabase(session).then(() => {
                 var query1: SingleResultQuery<User> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 1;',
-                    mask: 'object'
+                    mask: 'single'
                 };
 
                 var query2: SingleResultQuery<User> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 3;',
-                    mask: 'object'
+                    mask: 'single'
                 };
                 
                 var query3: SingleResultQuery<User> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 3;',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'test'
                 };
 
@@ -141,19 +141,19 @@ describe('Object query tests', function() {
             return prepareDatabase(session).then(() => {
                 var query1: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'getUserById'
                 };
                 
                 var query2: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 0;',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'getUserById'
                 };
                 
                 var query3: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 3;',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'getUserById'
                 };
                 
@@ -173,7 +173,7 @@ describe('Object query tests', function() {
             return prepareDatabase(session).then(() => {
                 var query: SingleResultQuery<number> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 1;',
-                    mask: 'object',
+                    mask: 'single',
                     handler: {
                         parse: (row: any) => row.id
                     }
@@ -191,7 +191,7 @@ describe('Object query tests', function() {
             return prepareDatabase(session).then(() => {
                 var query1: SingleResultQuery<number> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 1;',
-                    mask: 'object',
+                    mask: 'single',
                     handler: {
                         parse: (row: any) => row.id
                     }
@@ -199,7 +199,7 @@ describe('Object query tests', function() {
                 
                 var query2: SingleResultQuery<number> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 2;',
-                    mask: 'object',
+                    mask: 'single',
                     handler: {
                         parse: (row: any) => row.id
                     }
@@ -449,7 +449,7 @@ describe('Mixed query tests', function () {
             return prepareDatabase(session).then(() => {
                 var query1: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 2;',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'query1'
                 };
                 
@@ -481,7 +481,7 @@ describe('Mixed query tests', function () {
             return prepareDatabase(session).then(() => {
                 var query1: SingleResultQuery<{ id: number, username: string }> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 1;',
-                    mask: 'object'
+                    mask: 'single'
                 };
 
                 var query2: ListResultQuery<{ id: number, username: string }> = {
@@ -518,7 +518,7 @@ describe('Mixed query tests', function () {
             return prepareDatabase(session).then(() => {
                 var query1: SingleResultQuery<{ id: number, username: string }> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 1;',
-                    mask: 'object'
+                    mask: 'single'
                 };
 
                 var query2: Query = {
@@ -564,7 +564,7 @@ describe('Parametrized query tests', function () {
             return prepareDatabase(session).then(() => {
                 var query: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = {{id}};',
-                    mask: 'object',
+                    mask: 'single',
                     params: {
                         id: 2
                     }
@@ -583,7 +583,7 @@ describe('Parametrized query tests', function () {
             return prepareDatabase(session).then(() => {
                 var query: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE username = {{username}};',
-                    mask: 'object',
+                    mask: 'single',
                     params: {
                         username: 'Yason'
                     }
@@ -602,7 +602,7 @@ describe('Parametrized query tests', function () {
             return prepareDatabase(session).then(() => {
                 var query: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE username = {{username}};',
-                    mask: 'object',
+                    mask: 'single',
                     params: {
                         username: `T'est`
                     }
@@ -621,19 +621,19 @@ describe('Parametrized query tests', function () {
             return prepareDatabase(session).then(() => {
                 var query1: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'query1'
                 };
                 
                 var query2: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 2;',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'query2'
                 };
                 
                 var query3: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE username = {{username}};',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'query3',
                     params: {
                         username: `T'est`
@@ -642,7 +642,7 @@ describe('Parametrized query tests', function () {
                 
                 var query4: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 3;',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'query4'
                 };
                 
@@ -674,13 +674,13 @@ describe('Parametrized query tests', function () {
             return prepareDatabase(session).then(() => {
                 var query1: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'query1'
                 };
                 
                 var query2: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE username = {{username}};',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'query2',
                     params: {
                         username: `T'est`
@@ -689,7 +689,7 @@ describe('Parametrized query tests', function () {
                 
                 var query3: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = {{id}};',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'query3',
                     params: {
                         id: 2
@@ -698,7 +698,7 @@ describe('Parametrized query tests', function () {
                 
                 var query4: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 3;',
-                    mask: 'object',
+                    mask: 'single',
                     name: 'query4'
                 };
                 
@@ -812,7 +812,7 @@ describe('Session lifecycle tests', function () {
             return database.connect().then((session) => {
                 var query: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
-                    mask: 'object'
+                    mask: 'single'
                 };
                 return session.execute(query).then((user) => {
                     assert.strictEqual(user.id, 1);
@@ -847,7 +847,7 @@ describe('Session lifecycle tests', function () {
             return database.connect().then((session) => {
                 var query: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
-                    mask: 'object'
+                    mask: 'single'
                 };
                 
                 return session.execute(query).then((user) => {
@@ -917,7 +917,7 @@ describe('Error condition tests', function () {
             return database.connect().then((session) => {
                 var query: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
-                    mask: 'object'
+                    mask: 'single'
                 };
                 
                 return session.execute(query).then((user) => {
