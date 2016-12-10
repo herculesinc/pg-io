@@ -102,7 +102,7 @@ declare module "pg-io" {
 
     // QUERY
     // --------------------------------------------------------------------------------------------
-    export type QueryMask = 'list' | 'object';
+    export type QueryMask = 'list' | 'single';
     export type QueryMode = 'object' | 'array';
 
     export interface QuerySpec {
@@ -121,7 +121,7 @@ declare module "pg-io" {
     }
 
     export interface SingleResultQuery<T> extends ResultQuery<T> {
-        mask    : 'object';
+        mask    : 'single';
     }
 
     export interface ListResultQuery<T> extends ResultQuery<T> {

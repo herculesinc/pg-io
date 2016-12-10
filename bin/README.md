@@ -241,7 +241,7 @@ The only required property for a query is `text`, however, the behavior of the `
 | mode     | enum?   | Optional row mode; can be one of the following values: [`object`, `array`]; default is `object`.<br/><br/>When `mode=object`, each row will be returned as an object with property keys being field names.<br/><br/>When `mode=array` each row will be returned as an array of values (without the field names). |
 | name     | string? | Optional query name; used for logging. Also, when `execute()` is called with an array of queries, the returned map of results will be indexed by query name. For queries which don't have a name, the results will be held under the `undefined` key. If several executed queries have the same name, an array of results will be stored under the key for that name |
 | params   | object? | Optional parameters to apply to to the query (see [parameterized queries](#parameterized-queries)) 
-| handler  | object? | Optional result handler to apply custom parsing logic (see [result parsing](#result-parsing) ) | 
+| handler  | <ResultHandler>? | Optional result handler to apply custom parsing logic (see [result parsing](#result-parsing) ) | 
 
 A few examples of executing different queries:
 
