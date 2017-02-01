@@ -8,6 +8,7 @@ exports.defaults = {
     connection: {
         host: undefined,
         port: 5432,
+        ssl: false,
         user: undefined,
         password: undefined,
         database: undefined,

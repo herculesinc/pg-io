@@ -23,6 +23,7 @@ export interface DatabaseOptions {
 export interface ConnectionSettings {
     host            : string;
     port?           : number;
+    ssl?            : boolean;
     user            : string;
     password        : string;
     database        : string;
@@ -125,6 +126,7 @@ function buildPgPoolOptions(conn: ConnectionSettings, pool: PoolOptions): pg.Cli
     return {
         host        : conn.host,
         port        : conn.port,
+        ssl         : conn.ssl,
         user        : conn.user,
         password    : conn.password,
         database    : conn.database,

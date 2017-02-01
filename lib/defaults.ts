@@ -22,6 +22,7 @@ export const defaults: Defaults = {
     connection: {
         host            : undefined,
         port            : 5432,
+        ssl             : false,
         user            : undefined,
         password        : undefined,
         database        : undefined,

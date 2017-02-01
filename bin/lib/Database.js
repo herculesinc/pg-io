@@ -83,6 +83,7 @@ function buildPgPoolOptions(conn, pool) {
     return {
         host: conn.host,
         port: conn.port,
+        ssl: conn.ssl,
         user: conn.user,
         password: conn.password,
         database: conn.database,
