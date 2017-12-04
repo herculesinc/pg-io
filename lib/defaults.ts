@@ -28,9 +28,7 @@ export const defaults: Defaults = {
         database        : undefined,
     },
     session: {
-        startTransaction: false,
-        collapseQueries : false,
-        logQueryText    : false
+        readonly        : true
     },
     pool: {
         maxSize         : 20,

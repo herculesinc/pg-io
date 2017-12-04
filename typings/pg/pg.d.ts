@@ -38,9 +38,10 @@ declare module "pg" {
     }
 
     export interface QueryConfig {
-        name?: string;
-        text: string;
-        values?: any[];
+        name?   : string;
+        text    : string;
+        rowMode?: 'array';
+        values? : any[];
     }
 
     export interface QueryResult {

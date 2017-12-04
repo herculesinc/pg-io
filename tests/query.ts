@@ -1,7 +1,7 @@
 // IMPORTS
 // ================================================================================================
 import * as assert from 'assert';
-import { Query, toDbQuery } from './../lib/Query'
+import { Query, toPgQuery } from './../lib/Query'
 import { QueryError } from './../lib/errors'
 
 // TESTS
@@ -9,241 +9,203 @@ import { QueryError } from './../lib/errors'
 describe('Query parameterization tests', function() {
     
     it('Numbers, booleans, and safe strings should be inlined', () => {
-		var query: Query = {
-			text: 'SELECT * FROM users WHERE id = {{id}} AND is_active = {{isActive}} AND type = {{type}};',
-			params: {
-				id: 1,
-				isActive: true,
-				type: 'personal'
-			}
-		};
+		const template = Query.template('SELECT * FROM users WHERE id = {{id}} AND is_active = {{isActive}} AND type = {{type}};');
+		const query = new template({
+			id: 1,
+			isActive: true,
+			type: 'personal'
+		});
 		
-		var dbQuery = toDbQuery(query);
-		assert.equal(dbQuery.text, `SELECT * FROM users WHERE id = 1 AND is_active = true AND type = 'personal';\n`);
-		assert.strictEqual(dbQuery.values, undefined);
+		const pgQuery = toPgQuery(query);
+		assert.equal(pgQuery.text, `SELECT * FROM users WHERE id = 1 AND is_active = true AND type = 'personal';\n`);
+		assert.strictEqual(pgQuery.values, undefined);
     });
    
 	it('Dates should be inlined', () => {
-		var activationDate = new Date();
-		var query: Query = {
-			text: 'SELECT * FROM users WHERE activated_on = {{activatedOn}};',
-			params: {
-				activatedOn: activationDate
-			}
-		};
+		const activationDate = new Date();
+		const template = Query.template('SELECT * FROM users WHERE activated_on = {{activatedOn}};');
+		const query = new template({
+			activatedOn: activationDate
+		});
 		
-		var dbQuery = toDbQuery(query);
-		assert.equal(dbQuery.text, `SELECT * FROM users WHERE activated_on = '${activationDate.toISOString()}';\n`);
-		assert.strictEqual(dbQuery.values, undefined);
+		const pgQuery = toPgQuery(query);
+		assert.equal(pgQuery.text, `SELECT * FROM users WHERE activated_on = '${activationDate.toISOString()}';\n`);
+		assert.strictEqual(pgQuery.values, undefined);
     });
     
 	it('Queries with unsafe strings should be converted to parametrized queries', () => {
-		var query: Query = {
-			text: 'SELECT * FROM users WHERE firstName={{firstName}} AND lastName={{lastName}};',
-			params: {
-				firstName: `F'irst`,
-				lastName: `L'ast`
-			}
-		};
+		const template = Query.template('SELECT * FROM users WHERE firstName={{firstName}} AND lastName={{lastName}};');
+		const query = new template({
+			firstName: `F'irst`,
+			lastName: `L'ast`
+		});
 		
-		var dbQuery = toDbQuery(query);
-		assert.equal(dbQuery.text, `SELECT * FROM users WHERE firstName=$1 AND lastName=$2;\n`);
-		assert.strictEqual(dbQuery.values.length, 2);
-		assert.strictEqual(dbQuery.values[0], `F'irst`);
-		assert.strictEqual(dbQuery.values[1], `L'ast`);
+		const pgQuery = toPgQuery(query);
+		assert.equal(pgQuery.text, `SELECT * FROM users WHERE firstName=$1 AND lastName=$2;\n`);
+		assert.strictEqual(pgQuery.values.length, 2);
+		assert.strictEqual(pgQuery.values[0], `F'irst`);
+		assert.strictEqual(pgQuery.values[1], `L'ast`);
     });
 	
 	it('Number array parameters should be inlined', () => {
-		var query: Query = {
-			text: 'SELECT * FROM users WHERE id IN ([[ids]]);',
-			params: {
-				ids: [1, 2]
-			}
-		};
+		const template = Query.template('SELECT * FROM users WHERE id IN ([[ids]]);');
+		const query = new template({
+			ids: [1, 2]
+		});
 		
-		var dbQuery = toDbQuery(query);
-		assert.equal(dbQuery.text, `SELECT * FROM users WHERE id IN (1,2);\n`);
-		assert.strictEqual(dbQuery.values, undefined);
+		const pgQuery = toPgQuery(query);
+		assert.equal(pgQuery.text, `SELECT * FROM users WHERE id IN (1,2);\n`);
+		assert.strictEqual(pgQuery.values, undefined);
     });
 	
 	it('Parametrizing arrays as objects should work correctly', () => {
-		var query: Query = {
-			text: 'UPDATE users SET tags={{tags}} WHERE id={{id}};',
-			params: {
-				id: 1,
-				tags: ['test', 'testing']
-			}
-		};
+		const template = Query.template('UPDATE users SET tags={{tags}} WHERE id={{id}};');
+		const query = new template({
+			id: 1,
+			tags: ['test', 'testing']
+		});
 		
-		var dbQuery = toDbQuery(query);
-		assert.equal(dbQuery.text, `UPDATE users SET tags='["test","testing"]' WHERE id=1;\n`);
-		assert.strictEqual(dbQuery.values, undefined);
+		const pgQuery = toPgQuery(query);
+		assert.equal(pgQuery.text, `UPDATE users SET tags='["test","testing"]' WHERE id=1;\n`);
+		assert.strictEqual(pgQuery.values, undefined);
     });
 	
 	it('Safe string array parameters should be inlined', () => {
-		var query: Query = {
-			text: 'SELECT * FROM users WHERE type IN ([[types]]);',
-			params: {
-				types: ['personal', 'business']
-			}
-		};
-		
-		var dbQuery = toDbQuery(query);
-		assert.equal(dbQuery.text, `SELECT * FROM users WHERE type IN ('personal','business');\n`);
-		assert.strictEqual(dbQuery.values, undefined);
+		const template = Query.template('SELECT * FROM users WHERE type IN ([[types]]);');
+		const query = new template({
+			types: ['personal', 'business']
+		});
+
+		const pgQuery = toPgQuery(query);
+		assert.equal(pgQuery.text, `SELECT * FROM users WHERE type IN ('personal','business');\n`);
+		assert.strictEqual(pgQuery.values, undefined);
     });
 	
 	it('Unsafe string array parameters should be converted to parametrized queries', () => {
-		var query: Query = {
-			text: 'SELECT * FROM users WHERE firstName IN ([[names]]);',
-			params: {
-				names: [
-					'Irakliy',
-					`T'est`,
-					'Yason',
-					`Te'st`,
-					`Tes't`
-				]
-			}
-		};
+		const template = Query.template('SELECT * FROM users WHERE firstName IN ([[names]]);');
+		const query = new template({
+			names: [
+				'Irakliy',
+				`T'est`,
+				'Yason',
+				`Te'st`,
+				`Tes't`
+			]
+		});
 		
-		var dbQuery = toDbQuery(query);
-		assert.equal(dbQuery.text, `SELECT * FROM users WHERE firstName IN ('Irakliy',$1,'Yason',$2,$3);\n`);
-		assert.strictEqual(dbQuery.values.length, 3);
-		assert.strictEqual(dbQuery.values[0], `T'est`);
-		assert.strictEqual(dbQuery.values[1], `Te'st`);
-		assert.strictEqual(dbQuery.values[2], `Tes't`);
+		const pgQuery = toPgQuery(query);
+		assert.equal(pgQuery.text, `SELECT * FROM users WHERE firstName IN ('Irakliy',$1,'Yason',$2,$3);\n`);
+		assert.strictEqual(pgQuery.values.length, 3);
+		assert.strictEqual(pgQuery.values[0], `T'est`);
+		assert.strictEqual(pgQuery.values[1], `Te'st`);
+		assert.strictEqual(pgQuery.values[2], `Tes't`);
     });
 	
 	it('Parameterization should rely on valueOf() method when available', () => {
-		
-		var userStatus = {
-			valueOf: function () {
-				return 1;
+		const template = Query.template('SELECT * FROM users WHERE status = {{status}};');
+		const query = new template({
+			status: {
+				valueOf: function () {
+					return 1;
+				}
 			}
-		}
-		var query: Query = {
-			text: 'SELECT * FROM users WHERE status = {{status}};',
-			params: {
-				status: userStatus
-			}
-		};
-		
-		var dbQuery = toDbQuery(query);
-		assert.equal(dbQuery.text, `SELECT * FROM users WHERE status = 1;\n`);
-		assert.strictEqual(dbQuery.values, undefined);
+		});
+
+		const pgQuery = toPgQuery(query);
+		assert.equal(pgQuery.text, `SELECT * FROM users WHERE status = 1;\n`);
+		assert.strictEqual(pgQuery.values, undefined);
     });
 	
 	it('Parameterization of object with unsefe results for valueOf() should result in parametrized query', () => {
-		
-		var userStatus = {
-			valueOf: function () {
-				return `Te'st`;
+		const template = Query.template('SELECT * FROM users WHERE status = {{status}};');
+		const query = new template({
+			status: {
+				valueOf: function () {
+					return `Te'st`;
+				}
 			}
-		}
-		var query: Query = {
-			text: 'SELECT * FROM users WHERE status = {{status}};',
-			params: {
-				status: userStatus
-			}
-		};
+		});
 		
-		var dbQuery = toDbQuery(query);
-		assert.equal(dbQuery.text, `SELECT * FROM users WHERE status = $1;\n`);
-		assert.strictEqual(dbQuery.values.length, 1);
-		assert.strictEqual(dbQuery.values[0], `Te'st`);
+		const pgQuery = toPgQuery(query);
+		assert.equal(pgQuery.text, `SELECT * FROM users WHERE status = $1;\n`);
+		assert.strictEqual(pgQuery.values.length, 1);
+		assert.strictEqual(pgQuery.values[0], `Te'st`);
     });
 	
 	it('Parameterization of safe objects should be inlined', () => {
-		var query: Query = {
-			text: 'SELECT * FROM users WHERE profile = {{profile}};',
-			params: {
-				profile: {
-					firstName: 'Test',
-					lastName: 'Testing'
-				}
+		const template = Query.template('SELECT * FROM users WHERE profile = {{profile}};');
+		const query = new template({
+			profile: {
+				firstName: 'Test',
+				lastName: 'Testing'
 			}
-		};
-		
-		var dbQuery = toDbQuery(query);
-		assert.equal(dbQuery.text, `SELECT * FROM users WHERE profile = '{"firstName":"Test","lastName":"Testing"}';\n`);
-		assert.strictEqual(dbQuery.values, undefined);
+		});
+				
+		const pgQuery = toPgQuery(query);
+		assert.equal(pgQuery.text, `SELECT * FROM users WHERE profile = '{"firstName":"Test","lastName":"Testing"}';\n`);
+		assert.strictEqual(pgQuery.values, undefined);
     });
 	
 	it('Parameterization of unsafe objects should result in a parametrized query', () => {
-		var query: Query = {
-			text: 'SELECT * FROM users WHERE profile = {{profile}};',
-			params: {
-				profile: {
-					firstName: `T'est`,
-					lastName: `T'esting`
-				}
+		const template = Query.template('SELECT * FROM users WHERE profile = {{profile}};');
+		const query = new template({
+			profile: {
+				firstName: `T'est`,
+				lastName: `T'esting`
 			}
-		};
+		});
 		
-		var dbQuery = toDbQuery(query);
-		assert.equal(dbQuery.text, `SELECT * FROM users WHERE profile = $1;\n`);
-		assert.strictEqual(dbQuery.values.length, 1);
-		assert.strictEqual(dbQuery.values[0], `{"firstName":"T'est","lastName":"T'esting"}`)
+		const pgQuery = toPgQuery(query);
+		assert.equal(pgQuery.text, `SELECT * FROM users WHERE profile = $1;\n`);
+		assert.strictEqual(pgQuery.values.length, 1);
+		assert.strictEqual(pgQuery.values[0], `{"firstName":"T'est","lastName":"T'esting"}`)
     });
 	
 	it('Parameterization with functions should throw an error', () => {
-		var activationDate = new Date();
-		var query: Query = {
-			text: 'SELECT * FROM users WHERE activated_on = {{activatedOn}};',
-			params: {
-				activatedOn: function (){ return new Date(); }
-			}
-		};
+		const template = Query.template('SELECT * FROM users WHERE activated_on = {{activatedOn}};');
+		const query = new template({
+			activatedOn: function (){ return new Date(); }
+		});
 		
 		assert.throws(() => {
-			var dbQuery = toDbQuery(query);	
+			const pgQuery = toPgQuery(query);	
 		}, QueryError);
     });
 	
 	it('Parameterization with arrays of mixed type should throw an error', () => {
-		var activationDate = new Date();
-		var query: Query = {
-			text: 'SELECT * FROM users WHERE activated_on = [[activatedOn]];',
-			params: {
-				activatedOn: [ 1, 'test' ]
-			}
-		};
+		const template = Query.template('SELECT * FROM users WHERE activated_on = [[activatedOn]];');
+		const query = new template({
+			activatedOn: [ 1, 'test' ]
+		});
 		
 		assert.throws(() => {
-			var dbQuery = toDbQuery(query);	
+			const pgQuery = toPgQuery(query);	
 		}, QueryError);
     });
 	
 	it('Parameterization with arrays of objects should throw an error', () => {
-		var activationDate = new Date();
-		var query: Query = {
-			text: 'SELECT * FROM users WHERE activated_on = [[activatedOn]];',
-			params: {
-				activatedOn: [ {
-					test: 'test'
-				} ]
-			}
-		};
+		const template = Query.template('SELECT * FROM users WHERE activated_on = [[activatedOn]];');
+		const query = new template({
+			activatedOn: [ {
+				test: 'test'
+			} ]
+		});
 		
 		assert.throws(() => {
-			var dbQuery = toDbQuery(query);	
+			const pgQuery = toPgQuery(query);	
 		}, QueryError);
     });
 	
 	it('Parameterization of objects as arrays should throw an error', () => {
-		var activationDate = new Date();
-		var query: Query = {
-			text: 'SELECT * FROM users WHERE activated_on = [[activatedOn]];',
-			params: {
-				activatedOn: {
-					test: 'test'
-				}
+		const template = Query.template('SELECT * FROM users WHERE activated_on = [[activatedOn]];');
+		const query = new template({
+			activatedOn: {
+				test: 'test'
 			}
-		};
+		});
 		
 		assert.throws(() => {
-			var dbQuery = toDbQuery(query);	
+			const pgQuery = toPgQuery(query);	
 		}, QueryError);
     });
 });

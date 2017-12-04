@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const Session_1 = require("./Session");
 // DEFAULTS
 // ================================================================================================
@@ -14,9 +15,7 @@ exports.defaults = {
         database: undefined,
     },
     session: {
-        startTransaction: false,
-        collapseQueries: false,
-        logQueryText: false
+        readonly: true
     },
     pool: {
         maxSize: 20,

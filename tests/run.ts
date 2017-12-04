@@ -23,7 +23,7 @@ const dbOptions = {
 };
 
 const sessionOpts = {
-    logQueryText: true
+    
 }
 
 // SETUP
@@ -46,4 +46,4 @@ async function runTests() {
     await session.close();
 }
 
-//runTests();
+runTests();

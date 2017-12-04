@@ -15,7 +15,7 @@ export interface User {
 
 // QUERIES
 // ================================================================================================
-class AbstractQuery implements Query {
+class AbstractQuery implements Query<any> {
     text: string;
     get name(): string { return (<any> this).constructor.name; }
 }
@@ -55,8 +55,6 @@ export class qFetchUserById implements SingleResultQuery<User> {
             SELECT id, username, created_on AS "createdOn", updated_on AS "updatedOn"
             FROM tmp_users WHERE id = ${userId};`;
     }
-
-    get name(): string { return (<any> this).constructor.name; }
 }
 
 export class qFetchRawUserById implements SingleResultQuery<any[]> {
@@ -87,16 +85,14 @@ export class qFetchUsersByIdList implements ListResultQuery<User> {
     get name(): string { return (<any> this).constructor.name; }
 }
 
-export function prepareDatabase(conn: Session): Promise<any> {
-    return conn.execute([{ text: `DROP TABLE IF EXISTS tmp_users;` },
-        {
-            text: `SELECT * INTO TEMPORARY tmp_users
-                FROM (VALUES 
-		            (1::int, 'Irakliy'::VARCHAR, '["test","testing"]'::jsonb,   now()::timestamptz, now()::timestamptz),
-		            (2::int, 'Yason'::VARCHAR, 	 '["test1","testing1"]'::jsonb, now()::timestamptz, now()::timestamptz),
-		            (3::int, 'George'::VARCHAR,  '["test2","testing2"]'::jsonb, now()::timestamptz, now()::timestamptz),
-                    (4::int, 'T''est'::VARCHAR,  '["test3","testing3"]'::jsonb, now()::timestamptz, now()::timestamptz)
-	            ) AS q (id, username, tags, created_on, updated_on);`
-        }
-    ]);
+export async function prepareDatabase(conn: Session): Promise<any> {
+    await conn.execute(Query.from('DROP TABLE IF EXISTS tmp_users;'));
+    await conn.execute(Query.from(`SELECT * INTO TEMPORARY tmp_users
+        FROM (VALUES 
+            (1::int, 'Irakliy'::VARCHAR, '["test","testing"]'::jsonb,   now()::timestamptz, now()::timestamptz),
+            (2::int, 'Yason'::VARCHAR, 	 '["test1","testing1"]'::jsonb, now()::timestamptz, now()::timestamptz),
+            (3::int, 'George'::VARCHAR,  '["test2","testing2"]'::jsonb, now()::timestamptz, now()::timestamptz),
+            (4::int, 'T''est'::VARCHAR,  '["test3","testing3"]'::jsonb, now()::timestamptz, now()::timestamptz)
+        ) AS q (id, username, tags, created_on, updated_on);`
+    ));
 }

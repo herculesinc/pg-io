@@ -70,17 +70,14 @@ declare module "pg-io" {
     // SESSION
     // --------------------------------------------------------------------------------------------
     export class Session {
-        isActive        : boolean;
-        inTransaction   : boolean;
+        isActive    : boolean;
+        isReadOnly  : boolean;
         
-        startTransaction(lazy?: boolean)        : Promise<void>;
         close(action?: 'commit' | 'rollback')   : Promise<void>;
         
-        execute<T>(query: SingleResultQuery<T>) : Promise<T>
-        execute<T>(query: ListResultQuery<T>)   : Promise<T[]>
-        execute<T>(query: ResultQuery<T>)       : Promise<any>
-        execute(query: Query)                   : Promise<void>;
-        execute(queries: Query[])               : Promise<Map<string, any>>;
+        execute<T>(query: SingleResultQuery<T>) : Promise<T>;
+        execute<T>(query: ListResultQuery<T>)   : Promise<T[]>;
+        execute(query: Query<void>)             : Promise<void>;
         
         constructor(dbName: string, client: any, options: SessionOptions, logger?: Logger);
         
@@ -90,7 +87,7 @@ declare module "pg-io" {
         protected logger?       : Logger;
         protected closing       : boolean;
 
-        protected processQueryResult(query: Query, result: DbQueryResult): any[];
+        protected processQueryResult(query: Query<any>, result: DbQueryResult): any[];
         protected rollbackAndRelease(reason?: any): Promise<any>;
         protected releaseConnection(error?: any);
     }
@@ -106,27 +103,65 @@ declare module "pg-io" {
     export type QueryMask = 'list' | 'single';
     export type QueryMode = 'object' | 'array';
 
-    export interface QuerySpec {
-        text    : string;
-        name?   : string;
+    export interface Query<T> {
+        readonly text       : string;
+        readonly name?      : string;
+        readonly mode?      : QueryMode;
+        readonly mask?      : QueryMask;
+        readonly values?    : any[];
+        readonly handler?   : ResultHandler<T>;
     }
 
-    export interface Query extends QuerySpec {
-        params? : any;
-    }
+    export const Query: {
+        from(text: string): Query<void>;
+        from(text: string, name: string): Query<void>;
+        from<T>(text: string, options?: ListResultQueryOptions<T>): ListResultQuery<T>;
+        from<T>(text: string, name: string, options?: ListResultQueryOptions<T>): ListResultQuery<T>;
+        from<T>(text: string, options?: SingleResultQueryOptions<T>): SingleResultQuery<T>;
+        from<T>(text: string, name: string, options?: SingleResultQueryOptions<T>): SingleResultQuery<T>;
 
-    export interface ResultQuery<T> extends Query {
-        mask    : QueryMask;
-        mode?   : QueryMode;
-        handler?: ResultHandler<T>;
+        template(text: string): QueryTemplate<Query<void>>;
+        template(text: string, name: string): QueryTemplate<Query<void>>;
+        template<T>(text: string, options?: ListResultQueryOptions<T>): QueryTemplate<ListResultQuery<T>>;
+        template<T>(text: string, name: string, options?: ListResultQueryOptions<T>): QueryTemplate<ListResultQuery<T>>;
+        template<T>(text: string, options?: SingleResultQueryOptions<T>): QueryTemplate<SingleResultQuery<T>>;
+        template<T>(text: string, name: string, options?: SingleResultQueryOptions<T>): QueryTemplate<SingleResultQuery<T>>;
     }
-
+    
+    export interface ResultQuery<T> extends Query<T> {
+        readonly mask       : QueryMask;
+        readonly mode?      : QueryMode;
+        readonly handler?   : ResultHandler<T>;
+    }
+    
     export interface SingleResultQuery<T> extends ResultQuery<T> {
-        mask    : 'single';
+        readonly mask       : 'single';
     }
-
+    
     export interface ListResultQuery<T> extends ResultQuery<T> {
-        mask    : 'list';
+        readonly mask       : 'list';
+    }
+    
+    export interface ResultQueryOptions<T> {
+        readonly mask       : QueryMask;
+        readonly mode?      : QueryMode;
+        readonly handler?   : ResultHandler<T>;
+    }
+    
+    export interface SingleResultQueryOptions<T> extends ResultQueryOptions<T> {
+        readonly mask       : 'single';
+        readonly mode?      : QueryMode;
+        readonly handler?   : ResultHandler<T>;
+    }
+    
+    export interface ListResultQueryOptions<T> extends ResultQueryOptions<T> {
+        readonly mask       : 'list';
+        readonly mode?      : QueryMode;
+        readonly handler?   : ResultHandler<T>;
+    }
+    
+    export interface QueryTemplate<T extends Query<any>> {
+        new(params: object): T;
     }
 
     // SUPPORTING ENUMS AND INTERFACES

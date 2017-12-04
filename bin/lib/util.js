@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 function since(start) {
     const diff = process.hrtime(start);
     return diff[0] * 1000 + Math.floor(diff[1] / 100000) / 10;

@@ -2,9 +2,7 @@
 // ================================================================================================
 import { Client, QueryResult } from 'pg';
 
-import {
-    Query, ResultQuery, SingleResultQuery, ListResultQuery, isParametrized, toDbQuery, DbQuery
-} from './Query';
+import { Query, SingleResultQuery, ListResultQuery, toPgQuery, PgQuery } from './Query';
 import { Collector } from './Collector';
 import { PgError, ConnectionError, TransactionError, QueryError, ParseError } from './errors';
 import { defaults } from './defaults';
@@ -13,13 +11,11 @@ import { since, Logger } from './util';
 // INTERFACES AND ENUMS
 // ================================================================================================
 export interface SessionOptions {
-    startTransaction?   : boolean;
-    collapseQueries?    : boolean;
-    logQueryText?       : boolean;
+    readonly?   : boolean;
 }
 
-const enum TransactionState {
-    pending = 1, active
+const enum SessionState {
+    pending = 1, active, closing, closed
 }
 
 // SESSION CLASS DEFINITION
@@ -27,63 +23,41 @@ const enum TransactionState {
 export class Session {
 
     dbName      : string;
-    client      : Client;
-    options     : SessionOptions;
-    transaction : TransactionState;
-    closing     : boolean;
-    logger?     : Logger;
+    private client  : Client;
+    private readonly: boolean;
+    private state   : SessionState;
+    private batch   : PgQuery[];
+    private logger? : Logger;
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     constructor(dbName: string, client: Client, options: SessionOptions, logger?: Logger) {
         if (!client) throw new ConnectionError('Cannot create a connection session: client is undefined');
         this.dbName = dbName;
+        
         this.client = client;
-        this.options = options;
+        this.readonly = !!options.readonly;
+        this.state = SessionState.pending;
+        this.batch = [];
         this.logger = logger;
-        this.closing = false;
-
-        if (this.options.startTransaction) {
-            this.logger && this.logger.debug(`Starting database transaction in lazy mode`, this.dbName)
-            this.transaction = TransactionState.pending;
-        }
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
-    get inTransaction(): boolean {
-        return (this.transaction > 0);
+    get isActive(): boolean {
+        return (this.state <= SessionState.active);
     }
 
-    get isActive(): boolean {
-        return (this.client !== undefined && this.closing === false);
+    get inTransaction(): boolean {
+        return (this.state === SessionState.active);
+    }
+
+    get isReadOnly(): boolean {
+        return this.readonly;
     }
 
     // LIFECYCLE METHODS
     // --------------------------------------------------------------------------------------------
-    startTransaction(lazy = true): Promise<void> {
-        if (this.isActive === false) {
-            return Promise.reject(
-                new ConnectionError('Cannot start transaction: session is not currently active'));
-        }
-        
-        if (this.inTransaction) {
-            return Promise.reject(
-                new TransactionError('Cannot start transaction: session is already in transaction'));
-        }
-        
-        this.logger && this.logger.debug(`Starting database transaction in ${lazy ? 'lazy' : 'eager'} mode`, this.dbName);
-        if (lazy) {
-            this.transaction = TransactionState.pending;
-            return Promise.resolve();
-        }
-        else {
-            return this.execute(BEGIN_TRANSACTION).then(() => {
-                this.transaction = TransactionState.active;
-            });
-        }
-    }
-
     close(action?: 'commit' | 'rollback'): Promise<any> {
         if (!this.isActive) {
             return Promise.reject(
@@ -91,22 +65,20 @@ export class Session {
         }
         
         switch (action) {
-            case 'commit':
-                this.logger && this.logger.debug('Committing transaction and closing the session', this.dbName);
-                const commitPromise = this.execute(COMMIT_TRANSACTION).then(() => this.releaseConnection());
-                this.closing = true;
-                return commitPromise;
-            case 'rollback':
+            case 'rollback': {
                 return this.rollbackAndRelease();
-            default:
+            }
+            default: {
                 this.logger && this.logger.debug('Closing the session', this.dbName);
                 if (this.inTransaction) {
-                    return this.rollbackAndRelease(
-                        new TransactionError('Uncommitted transaction detected while closing the session'));
+                    const commitPromise = this.execute(COMMIT_TRANSACTION).then(() => this.releaseClient());
+                    this.state = SessionState.closing;
+                    return commitPromise;
                 }
                 else {
-                    return Promise.resolve(this.releaseConnection());
+                    return Promise.resolve(this.releaseClient());
                 }
+            }
         }
     }
 
@@ -114,68 +86,71 @@ export class Session {
     // --------------------------------------------------------------------------------------------
     execute<T>(query: SingleResultQuery<T>): Promise<T>
     execute<T>(query: ListResultQuery<T>): Promise<T[]>
-    execute<T>(query: ResultQuery<T>): Promise<any>
-    execute(query: Query): Promise<any>
-    execute(queries: Query[]): Promise<Map<string, any>>
-    execute(queryOrQueries: Query | Query[]): Promise<any> {
+    execute(query: Query<void>): Promise<void>
+    execute<T>(query: Query<T>): Promise<T> {
         if (this.isActive === false) {
             return Promise.reject(
-                new ConnectionError('Cannot execute queries: the session is closed'));
+                new ConnectionError('Cannot execute a query: the session is closed'));
         }
 
-        var start = process.hrtime();
-        const { queries, command, transaction } = this.buildQueryList(queryOrQueries);
-        if (!queries.length) return Promise.resolve();
-
-        if (this.options.logQueryText) {
-            const queryText = buildQueryText(queries);
-            this.logger && this.logger.debug(`Executing ${queries.length} queries:\n${queryText}`, this.dbName);
-        }
-        else {
-            this.logger && this.logger.debug(`Executing ${queries.length} queries: [${command}]`, this.dbName);
+        const pgQuery = toPgQuery(query);
+        if (this.state === SessionState.pending) {
+            const beginQuery = this.readonly ? BEGIN_RO_TRANSACTION : BEGIN_RW_TRANSACTION;
+            // TODO: append this to the beginning of the query batch
         }
 
-        return Promise.resolve()
-            .then(() => this.buildDbQueries(queries))
-            .then((dbQueries) => dbQueries.map((query) => this.executeQuery(query)))
-            .then((queryResults) => Promise.all(queryResults))
-            .then((results) => {
-                try {
-                    this.logger && this.logger.trace(this.dbName, command, since(start), true);
-                    start = process.hrtime();
-                    
-                    const flatResults = results.reduce((agg: any[], result) => agg.concat(result), []);
-                    if (queries.length !== flatResults.length) {
-                        throw new ParseError(`Cannot parse query results: expected (${queries.length}) results but recieved (${results.length})`);
+        const resultPromise: Promise<any> = new Promise(function(resolve, reject) {
+            // TODO: refactro to handle multiple sources
+            pgQuery.source = [{
+                query   : query,
+                resolve : resolve,
+                reject  : reject
+            }];
+        });
+
+        this.batch.push(pgQuery);
+
+        process.nextTick(() => {
+            const start = process.hrtime();
+
+            const batch = this.batch;
+            this.batch = [];
+
+            this.logger && this.logger.debug(`Executing ${batch.length} queries: [...]`, this.dbName);
+            for (let query of batch) {
+                this.client.query(query, (error, results) => {
+                    if (error) {
+                        // TODO: release the client on error
+                        for (let source of query.source) source.reject(error);
+                        return;
                     }
-                    
-                    const collector = new Collector(queries);
-                    for (let i = 0; i < queries.length; i++) {
-                        let query = queries[i];
-                        collector.addResult(query, this.processQueryResult(query, flatResults[i]));
+
+                    for (let source of query.source) {
+                        const rows = this.processQueryResult(source.query, results);
+                        if (source.query.mask === 'list') {
+                            source.resolve(rows);
+                        }
+                        else if (source.query.mask === 'single') {
+                            source.resolve(rows[0]);
+                        }
+                        else {
+                            source.resolve(undefined);
+                        }
                     }
 
-                    this.transaction = transaction;
-                    this.logger && this.logger.debug(`Query results processed in ${since(start)} ms`, this.dbName);
-                    return collector.getResults();
-                }
-                catch (error) {
-                    if (error instanceof PgError === false)
-                        error = new ParseError(error);
-                    throw error;
-                }    
-            })
-            .catch((reason) => {
-                this.logger && this.logger.trace(this.dbName, command, since(start), false);
-                return this.rollbackAndRelease(reason);
-            });
+                    // TODO: log only the last query in the batch
+                    this.logger && this.logger.trace(this.dbName, 'query', since(start), true);
+                });
+            }
+        });
+
+        return resultPromise;
     }
 
     // PROTECTED METHODS
     // --------------------------------------------------------------------------------------------
     protected processQueryResult(query: any, result: QueryResult): any[] {
-        
-        var processedResult: any[];
+        let processedResult: any[];
         if (query.handler && typeof query.handler.parse === 'function') {
             processedResult = [];
             for (let row of result.rows) {
@@ -194,90 +169,44 @@ export class Session {
             this.client.query(ROLLBACK_TRANSACTION.text, (error, results) => {
                 if (error) {
                     error = new QueryError(error);
-                    this.releaseConnection(error);
+                    this.releaseClient(error);
                     reason ? reject(reason) : reject(error);
                 }
                 else {
                     if (reason) {
-                        this.releaseConnection();
+                        this.releaseClient();
                         reject(reason);
                     }
                     else {
-                        this.releaseConnection();
+                        this.releaseClient();
                         resolve();
                     }
                 }
             });
         });
 
-        this.closing = true;
+        this.state = SessionState.closing;
         return rollbackPromise;
     }
     
-    protected releaseConnection(error?: any) {
-        this.transaction = undefined;
+    protected releaseClient(error?: any) {
+        this.state = SessionState.closed;
         if (this.client) {
             this.client.release(error);
             this.client = undefined;
             this.logger && this.logger.debug('Session closed', this.dbName);
         }
         else {
-            this.logger && this.logger.warn('Overlapping connection release detected', this.dbName);
+            this.logger && this.logger.warn('Overlapping client release detected', this.dbName);
         }
     }
 
     // PRIVATE METHODS
     // --------------------------------------------------------------------------------------------
-    private buildQueryList(queryOrQueries: Query | Query[]): { queries: Query[], command: string, transaction: TransactionState } {
-        let queries = queryOrQueries 
-            ? (Array.isArray(queryOrQueries) ? queryOrQueries : [queryOrQueries])
-            : [];
-
-        // if transaction is pending
-        let transaction = this.transaction;
-        if (transaction === TransactionState.pending && queries.length > 0) {
-            queries.unshift(BEGIN_TRANSACTION);
-            transaction = TransactionState.active;
-        }
-
-        if (queries.length === 2 && queries[0] === BEGIN_TRANSACTION) {
-            if (queries[1] === COMMIT_TRANSACTION || queries[1] === ROLLBACK_TRANSACTION) {
-                queries = [];
-            }
-        }
-
-        let qNames: string[] = [];
-        for (let query of queries) {
-            qNames.push(query.name ? query.name : 'unnamed');
-        }
-        const command = qNames.join(', ');
-
-        return { queries, command, transaction };
-    }
-    
-    private buildDbQueries(queries: Query[]): DbQuery[] {
-        const dbQueries: DbQuery[] = [];
-        var previousQuery: DbQuery;
-    
-        for (let query of queries) {
-            let dbQuery = toDbQuery(query);
-            
-            if (this.options.collapseQueries && previousQuery && !isParametrized(dbQuery) && !isParametrized(previousQuery)) {
-                previousQuery.text += dbQuery.text;
-                previousQuery.multiResult = true;
-            }
-            else {
-                dbQueries.push(dbQuery);
-                previousQuery = dbQuery;
-            }
-        }
-    
-        return dbQueries;
-    }
-
-    private executeQuery(query: DbQuery): Promise<any> {
+    private executeQuery(query: PgQuery): Promise<any> {
         return new Promise((resolve, reject) => {
             this.client.query(query, (error, results) => {
+                console.log(query.text);
                 error ? reject(new QueryError(error)) : resolve(results);
             });
         });
@@ -286,34 +215,22 @@ export class Session {
 
 // COMMON QUERIES
 // ================================================================================================
-const BEGIN_TRANSACTION: Query = {
+const BEGIN_RO_TRANSACTION: Query<void> = {
     name: 'qBeginTransaction',
-    text: 'BEGIN;'
+    text: 'BEGIN READ ONLY;'
 };
 
-const COMMIT_TRANSACTION: Query = {
+const BEGIN_RW_TRANSACTION: Query<void> = {
+    name: 'qBeginTransaction',
+    text: 'BEGIN READ WRITE;'
+};
+
+const COMMIT_TRANSACTION: Query<void> = {
     name: 'qCommitTransaction',
     text: 'COMMIT;'
 };
 
-const ROLLBACK_TRANSACTION: Query = {
+const ROLLBACK_TRANSACTION: Query<void> = {
     name: 'qRollbackTransaction',
     text: 'ROLLBACK;'
 };
-
-// HELPER FUNCTIONS
-// ================================================================================================
-function buildQueryText(queries: Query[]): string {
-    if (!queries || !queries.length) return undefined;
-    let text = '';
-
-    for (let query of queries) {
-        let queryName = query.name ? query.name : 'unnamed';
-        let sideLength = Math.floor((78 - queryName.length) / 2);
-        text += ('_'.repeat(sideLength) + '[' + queryName + ']' + '_'.repeat(sideLength)) + '\n';
-        text += (query.text + '\n');
-    }
-
-    text += ('_'.repeat(80));
-    return text;
-}

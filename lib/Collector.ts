@@ -10,7 +10,7 @@ export class Collector {
 	private results		: Map<string, any>;
 	private singleResult: boolean;
 
-	constructor(queries: Query[]) {
+	constructor(queries: Query<any>[]) {
 		this.results = new Map<string,any>();
 		this.singleResult = true;
 		
@@ -23,13 +23,13 @@ export class Collector {
 					}
 				}
 				else {
-					this.results.set(query.name);
+					this.results.set(query.name, undefined);
 				}
 			}
 		}
 	}
 	
-	addResult(query: Query, result: any[]) {
+	addResult(query: Query<any>, result: any[]) {
     	if (result == undefined || this.results.has(query.name) === false) return;
 
 		if (isResultQuery(query)) {
