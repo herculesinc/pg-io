@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const Query_1 = require("./Query");
 // CLASS DEFINITION
 // ================================================================================================
@@ -15,7 +16,7 @@ class Collector {
                     }
                 }
                 else {
-                    this.results.set(query.name);
+                    this.results.set(query.name, undefined);
                 }
             }
         }

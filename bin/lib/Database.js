@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 // IMPORTS
 // ================================================================================================
 const events = require("events");
@@ -28,6 +29,7 @@ class Database extends events.EventEmitter {
         const poolOptions = Object.assign({}, defaults_1.defaults.pool, options.pool);
         this.pgPool = new pg.Pool(buildPgPoolOptions(connectionSettings, poolOptions));
         this.pgPool.on('error', (error) => {
+            this.logger && this.logger.warn('pg.pool error: ' + error.message);
             // turn off error emitter because pgPool emits duplicate errors when client creation fails
             // this.emit(ERROR_EVENT, error); 
         });

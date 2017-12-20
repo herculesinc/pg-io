@@ -68,6 +68,7 @@ export class Database extends events.EventEmitter {
         this.pgPool = new pg.Pool(buildPgPoolOptions(connectionSettings, poolOptions));
 
         this.pgPool.on('error', (error) => {
+            this.logger && this.logger.warn('pg.pool error: ' + error.message);
             // turn off error emitter because pgPool emits duplicate errors when client creation fails
             // this.emit(ERROR_EVENT, error); 
         });

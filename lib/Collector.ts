@@ -23,7 +23,7 @@ export class Collector {
 					}
 				}
 				else {
-					this.results.set(query.name);
+					this.results.set(query.name, undefined);
 				}
 			}
 		}
