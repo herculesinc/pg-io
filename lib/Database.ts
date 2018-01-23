@@ -68,9 +68,9 @@ export class Database extends events.EventEmitter {
         this.pgPool = new pg.Pool(buildPgPoolOptions(connectionSettings, poolOptions));
 
         this.pgPool.on('error', (error) => {
-            this.logger && this.logger.warn('pg.pool error: ' + error.message);
-            // turn off error emitter because pgPool emits duplicate errors when client creation fails
-            // this.emit(ERROR_EVENT, error); 
+            //this.logger && this.logger.warn('pg.pool error: ' + error.message);
+            //turn off error emitter because pgPool emits duplicate errors when client creation fails
+            this.emit(ERROR_EVENT, error); 
         });
     }
 
@@ -99,13 +99,13 @@ export class Database extends events.EventEmitter {
     // --------------------------------------------------------------------------------------------
     getPoolState(): PoolState {
         return {
-            size        : this.pgPool.pool.getPoolSize(),
-            available   : this.pgPool.pool.availableObjectsCount()
+            size        : this.pgPool.totalCount,
+            available   : this.pgPool.idleCount
         };
     }
     
     getPoolDescription(): string {
-        return `{ size: ${this.pgPool.pool.getPoolSize()}, available: ${this.pgPool.pool.availableObjectsCount()} }`;
+        return `{ size: ${this.pgPool.totalCount}, available: ${this.pgPool.idleCount} }`;
     }
 }
 
