@@ -30,9 +30,10 @@ export interface ConnectionSettings {
 }
 
 export interface PoolOptions {
-    maxSize?        : number;
-    idleTimeout?    : number;
-    reapInterval?   : number;
+    log?               : (data: any) => void;
+    maxSize?           : number;
+    idleTimeout?       : number;
+    connectionTimeout? : number;
 }
 
 export interface PoolState {
@@ -44,11 +45,11 @@ export interface PoolState {
 // ================================================================================================
 export class Database extends events.EventEmitter {
 
-    name        : string;
-    pgPool      : pg.Pool;
-    logger?     : Logger;
-    Session     : typeof Session;
-    sOptions    : SessionOptions;
+    name     : string;
+    pgPool   : pg.Pool;
+    logger?  : Logger;
+    Session  : typeof Session;
+    sOptions : SessionOptions;
 
     constructor(options: DatabaseOptions, logger?: Logger, SessionCtr?: typeof Session) {
         super();
@@ -70,15 +71,23 @@ export class Database extends events.EventEmitter {
         this.pgPool.on('error', (error) => {
             //this.logger && this.logger.warn('pg.pool error: ' + error.message);
             //turn off error emitter because pgPool emits duplicate errors when client creation fails
-            this.emit(ERROR_EVENT, error); 
+            this.emit(ERROR_EVENT, error);
         });
+
+        this.pgPool.on('remove', client => {
+            console.log('------------- pgPool remove client -------------');
+            console.log('removed client - ', client.processID);
+            console.log(`All clients - [${(this.pgPool as any)._clients.map(c => c.processID).join(',')}]`);
+            console.log(`Idle clients - [${(this.pgPool as any)._idle.map(c => c.processID).join(',')}]`);
+            console.log('------------------------------------------------');
+        })
     }
 
     connect(options?: SessionOptions): Promise<Session> {
         options = Object.assign({}, this.sOptions, options);
-        
+
         const start = process.hrtime();
-        
+
         this.logger && this.logger.debug(`Connecting to the database; pool state ${this.getPoolDescription()}`, this.name);
         return new Promise((resolve, reject) => {
             this.pgPool.connect((error, client) => {
@@ -103,7 +112,7 @@ export class Database extends events.EventEmitter {
             available   : this.pgPool.idleCount
         };
     }
-    
+
     getPoolDescription(): string {
         return `{ size: ${this.pgPool.totalCount}, available: ${this.pgPool.idleCount} }`;
     }
@@ -125,14 +134,15 @@ function validateLogger(logger: Logger): Logger {
 
 function buildPgPoolOptions(conn: ConnectionSettings, pool: PoolOptions): pg.ClientConfig {
     return {
-        host        : conn.host,
-        port        : conn.port,
-        ssl         : conn.ssl,
-        user        : conn.user,
-        password    : conn.password,
-        database    : conn.database,
-        max                 : pool.maxSize,
-        idleTimeoutMillis   : pool.idleTimeout,
-        reapIntervalMillis  : pool.reapInterval
+        host                   : conn.host,
+        port                   : conn.port,
+        ssl                    : conn.ssl,
+        user                   : conn.user,
+        password               : conn.password,
+        database               : conn.database,
+        max                    : pool.maxSize,
+        log                    : pool.log,
+        idleTimeoutMillis      : pool.idleTimeout,
+        connectionTimeoutMillis: pool.connectionTimeout
     };
 }

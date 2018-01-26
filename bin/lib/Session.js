@@ -1,9 +1,8 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const Query_1 = require("./Query");
-const Collector_1 = require("./Collector");
-const errors_1 = require("./errors");
-const util_1 = require("./util");
+const Query_1 = require('./Query');
+const Collector_1 = require('./Collector');
+const errors_1 = require('./errors');
+const util_1 = require('./util');
 // SESSION CLASS DEFINITION
 // ================================================================================================
 class Session {
@@ -17,10 +16,16 @@ class Session {
         this.options = options;
         this.logger = logger;
         this.closing = false;
+        this.clientError = null;
         if (this.options.startTransaction) {
             this.logger && this.logger.debug(`Starting database transaction in lazy mode`, this.dbName);
             this.transaction = 1 /* pending */;
         }
+        const clientErrorHandler = err => {
+            this.clientError = err;
+            this.client && this.client.removeListener('error', clientErrorHandler);
+        };
+        this.client.on('error', clientErrorHandler);
     }
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
@@ -137,6 +142,12 @@ class Session {
     rollbackAndRelease(reason) {
         this.logger && this.logger.debug('Rolling back transaction and closing the session', this.dbName);
         const rollbackPromise = new Promise((resolve, reject) => {
+            if (this.clientError) {
+                this.releaseConnection();
+                reject(reason);
+                this.clientError = null;
+                return;
+            }
             this.client.query(ROLLBACK_TRANSACTION.text, (error, results) => {
                 if (error) {
                     error = new errors_1.QueryError(error);

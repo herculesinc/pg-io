@@ -15,7 +15,7 @@ gulp.task('clean', function(cb) {
 });
 
 // compile TypeScript files
-gulp.task('compile', ['clean'], function (cb) {  
+gulp.task('compile', ['clean'], function (cb) {
   exec('tsc -p .', function (err, stdout, stderr) {
     if (stdout.length > 0) console.log(stdout);
     if (stderr.length > 0) console.error(stderr);
@@ -35,14 +35,15 @@ gulp.task('build', ['compile'], function (cb) {
 // run tests
 gulp.task('test', ['build'], function () {
     return gulp.src('./bin/tests/**/*.js', { read: false })
-        .pipe( mocha( { reporter: 'spec', timeout: 25000, bail: false } ) )
-        .on( 'error', err => {
+        .pipe( mocha( { reporter: 'spec', timeout: 45000, bail: false } ) )
+        .once( 'error', err => {
             if ( err && ( !err.message || !err.message.match( /failed/ ) ) ) {
-                gutil.log( gutil.colors.red( JSON.stringify( err, null, 2 ) ) );
+                gutil.log( gutil.colors.red( err.toString() ) );
             }
+
+            process.exit( 1 );
         } )
-        .once( 'error', () => process.exit( 1 ) )
-        .on( 'end', () =>  process.exit( 0 ) );
+        .once( 'end', () =>  process.exit( 0 ) );
 });
 
 // publish to npm

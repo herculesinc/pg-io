@@ -1,12 +1,11 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 // IMPORTS
 // ================================================================================================
-const events = require("events");
-const pg = require("pg");
-const errors_1 = require("./errors");
-const defaults_1 = require("./defaults");
-const util_1 = require("./util");
+const events = require('events');
+const pg = require('pg');
+const errors_1 = require('./errors');
+const defaults_1 = require('./defaults');
+const util_1 = require('./util');
 // MODULE VARIABLES
 // ================================================================================================
 const ERROR_EVENT = 'error';
@@ -32,6 +31,13 @@ class Database extends events.EventEmitter {
             //this.logger && this.logger.warn('pg.pool error: ' + error.message);
             //turn off error emitter because pgPool emits duplicate errors when client creation fails
             this.emit(ERROR_EVENT, error);
+        });
+        this.pgPool.on('remove', client => {
+            console.log('------------- pgPool remove client -------------');
+            console.log('removed client - ', client.processID);
+            console.log(`All clients - [${this.pgPool._clients.map(c => c.processID).join(',')}]`);
+            console.log(`Idle clients - [${this.pgPool._idle.map(c => c.processID).join(',')}]`);
+            console.log('------------------------------------------------');
         });
     }
     connect(options) {
@@ -90,8 +96,9 @@ function buildPgPoolOptions(conn, pool) {
         password: conn.password,
         database: conn.database,
         max: pool.maxSize,
+        log: pool.log,
         idleTimeoutMillis: pool.idleTimeout,
-        reapIntervalMillis: pool.reapInterval
+        connectionTimeoutMillis: pool.connectionTimeout
     };
 }
 //# sourceMappingURL=Database.js.map

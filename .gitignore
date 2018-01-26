@@ -3,9 +3,13 @@
 
 # Installed modules
 node_modules/
+package-lock.json
 
 # Compiled Tests
 /bin/tests/
 
 # .npmignore in bin folder
 /bin/.npmignore
+
+# IDE settings and other
+.idea

@@ -32,6 +32,7 @@ export class Session {
     transaction : TransactionState;
     closing     : boolean;
     logger?     : Logger;
+    clientError?: Error;
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
@@ -42,11 +43,19 @@ export class Session {
         this.options = options;
         this.logger = logger;
         this.closing = false;
+        this.clientError = null;
 
         if (this.options.startTransaction) {
             this.logger && this.logger.debug(`Starting database transaction in lazy mode`, this.dbName)
             this.transaction = TransactionState.pending;
         }
+
+        const clientErrorHandler = err => {
+            this.clientError = err;
+            this.client && this.client.removeListener('error', clientErrorHandler)
+        };
+
+        this.client.on('error', clientErrorHandler);
     }
 
     // PUBLIC ACCESSORS
@@ -66,12 +75,12 @@ export class Session {
             return Promise.reject(
                 new ConnectionError('Cannot start transaction: session is not currently active'));
         }
-        
+
         if (this.inTransaction) {
             return Promise.reject(
                 new TransactionError('Cannot start transaction: session is already in transaction'));
         }
-        
+
         this.logger && this.logger.debug(`Starting database transaction in ${lazy ? 'lazy' : 'eager'} mode`, this.dbName);
         if (lazy) {
             this.transaction = TransactionState.pending;
@@ -89,7 +98,7 @@ export class Session {
             return Promise.reject(
                 new ConnectionError('Cannot close session: session has already been closed'));
         }
-        
+
         switch (action) {
             case 'commit':
                 this.logger && this.logger.debug('Committing transaction and closing the session', this.dbName);
@@ -143,12 +152,12 @@ export class Session {
                 try {
                     this.logger && this.logger.trace(this.dbName, command, since(start), true);
                     start = process.hrtime();
-                    
+
                     const flatResults = results.reduce((agg: any[], result) => agg.concat(result), []);
                     if (queries.length !== flatResults.length) {
                         throw new ParseError(`Cannot parse query results: expected (${queries.length}) results but recieved (${results.length})`);
                     }
-                    
+
                     const collector = new Collector(queries);
                     for (let i = 0; i < queries.length; i++) {
                         let query = queries[i];
@@ -163,7 +172,7 @@ export class Session {
                     if (error instanceof PgError === false)
                         error = new ParseError(error);
                     throw error;
-                }    
+                }
             })
             .catch((reason) => {
                 this.logger && this.logger.trace(this.dbName, command, since(start), false);
@@ -174,7 +183,7 @@ export class Session {
     // PROTECTED METHODS
     // --------------------------------------------------------------------------------------------
     protected processQueryResult(query: any, result: QueryResult): any[] {
-        
+
         var processedResult: any[];
         if (query.handler && typeof query.handler.parse === 'function') {
             processedResult = [];
@@ -187,10 +196,18 @@ export class Session {
         }
         return processedResult;
     }
-    
+
     protected rollbackAndRelease(reason?: any): Promise<any> {
         this.logger && this.logger.debug('Rolling back transaction and closing the session', this.dbName);
+
         const rollbackPromise = new Promise((resolve, reject) => {
+            if (this.clientError) {
+                this.releaseConnection();
+                reject(reason);
+                this.clientError = null;
+                return;
+            }
+
             this.client.query(ROLLBACK_TRANSACTION.text, (error, results) => {
                 if (error) {
                     error = new QueryError(error);
@@ -213,7 +230,7 @@ export class Session {
         this.closing = true;
         return rollbackPromise;
     }
-    
+
     protected releaseConnection(error?: any) {
         this.transaction = undefined;
         if (this.client) {
@@ -229,7 +246,7 @@ export class Session {
     // PRIVATE METHODS
     // --------------------------------------------------------------------------------------------
     private buildQueryList(queryOrQueries: Query | Query[]): { queries: Query[], command: string, transaction: TransactionState } {
-        let queries = queryOrQueries 
+        let queries = queryOrQueries
             ? (Array.isArray(queryOrQueries) ? queryOrQueries : [queryOrQueries])
             : [];
 
@@ -254,14 +271,14 @@ export class Session {
 
         return { queries, command, transaction };
     }
-    
+
     private buildDbQueries(queries: Query[]): DbQuery[] {
         const dbQueries: DbQuery[] = [];
         var previousQuery: DbQuery;
-    
+
         for (let query of queries) {
             let dbQuery = toDbQuery(query);
-            
+
             if (this.options.collapseQueries && previousQuery && !isParametrized(dbQuery) && !isParametrized(previousQuery)) {
                 previousQuery.text += dbQuery.text;
                 previousQuery.multiResult = true;
@@ -271,7 +288,7 @@ export class Session {
                 previousQuery = dbQuery;
             }
         }
-    
+
         return dbQueries;
     }
 

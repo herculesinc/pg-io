@@ -21,11 +21,12 @@ declare module "pg-io" {
         password        : string;
         database        : string;
     }
-    
+
     export interface PoolOptions {
-        maxSize?        : number;
-        idleTimeout?    : number;
-        reapInterval?   : number;
+        log?               : (data: any) => void;
+        maxSize?           : number;
+        idleTimeout?       : number;
+        connectionTimeout? : number;
     }
 
     export const defaults: {
@@ -72,18 +73,18 @@ declare module "pg-io" {
     export class Session {
         isActive        : boolean;
         inTransaction   : boolean;
-        
+
         startTransaction(lazy?: boolean)        : Promise<void>;
         close(action?: 'commit' | 'rollback')   : Promise<void>;
-        
+
         execute<T>(query: SingleResultQuery<T>) : Promise<T>
         execute<T>(query: ListResultQuery<T>)   : Promise<T[]>
         execute<T>(query: ResultQuery<T>)       : Promise<any>
         execute(query: Query)                   : Promise<void>;
         execute(queries: Query[])               : Promise<Map<string, any>>;
-        
+
         constructor(dbName: string, client: any, options: SessionOptions, logger?: Logger);
-        
+
         protected dbName        : string;
         protected options       : SessionOptions;
         protected transaction   : TransactionState;
@@ -134,20 +135,20 @@ declare module "pg-io" {
     export const enum TransactionState {
         pending = 1, active
     }
-    
+
     export interface DbQueryResult {
         rows: any[];
     }
-    
+
     // ERROR CLASSES
     // --------------------------------------------------------------------------------------------
     export class PgError extends Error {
         cause: Error;
-        
+
         constructor(cause: Error);
 	    constructor(message: string, cause?: Error);
     }
-	
+
     export class ConnectionError extends PgError {}
     export class TransactionError extends PgError {}
     export class QueryError extends PgError {}

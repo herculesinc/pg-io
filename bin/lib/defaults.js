@@ -1,6 +1,5 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const Session_1 = require("./Session");
+const Session_1 = require('./Session');
 // DEFAULTS
 // ================================================================================================
 exports.defaults = {
@@ -22,7 +21,7 @@ exports.defaults = {
     pool: {
         maxSize: 20,
         idleTimeout: 30000,
-        reapInterval: 1000
+        connectionTimeout: 1000
     }
 };
 //# sourceMappingURL=defaults.js.map
