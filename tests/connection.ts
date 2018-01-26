@@ -10,7 +10,7 @@ import { settings } from './settings';
 // OBJECT QUERY TESTS
 // ================================================================================================
 describe('Object query tests', function() {
-    
+
     it('Object query should return a single object', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
@@ -19,7 +19,7 @@ describe('Object query tests', function() {
                     mask: 'single',
                     name: 'getUserById'
                 };
-                
+
                 return session.execute(query).then((user) => {
                     assert.strictEqual(user.id, 1);
                     assert.strictEqual(user.username, 'Irakliy');
@@ -29,7 +29,7 @@ describe('Object query tests', function() {
             }).then(() => session.close());
         });
     });
-    
+
     it('Object query should return undefined on no rows', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
@@ -38,14 +38,14 @@ describe('Object query tests', function() {
                     mask: 'single',
                     name: 'getUserById'
                 };
-                
+
                 return session.execute(query).then((user) => {
                     assert.strictEqual(user, undefined);
                 });
             }).then(() => session.close());
         });
     });
-    
+
     it('Multiple object queries should produce a Map of objects', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
@@ -54,24 +54,24 @@ describe('Object query tests', function() {
                     mask: 'single',
                     name: 'query1'
                 };
-                
+
                 var query2: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 2;',
                     mask: 'single',
                     name: 'query2'
                 };
-                
+
                 return session.execute([query1, query2]).then((usermap) => {
                     assert.strictEqual(usermap.size, 2);
                     var user1 = usermap.get(query1.name);
-                    assert.strictEqual(user1.username, 'Irakliy');    
+                    assert.strictEqual(user1.username, 'Irakliy');
                     var user2 = usermap.get(query2.name);
                     assert.strictEqual(user2.username, 'Yason');
                 });
             }).then(() => session.close());
         });
     });
-    
+
     it('Multiple object queries with the same name should produce a Map with a single key', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
@@ -80,19 +80,19 @@ describe('Object query tests', function() {
                     mask: 'single',
                     name: 'getUserById'
                 };
-                
+
                 var query2: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 2;',
                     mask: 'single',
                     name: 'getUserById'
                 };
-                
+
                 var query3: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 3;',
                     mask: 'single',
                     name: 'getUserById'
                 };
-                
+
                 return session.execute([query1, query2, query3]).then((usermap) => {
                     assert.strictEqual(usermap.size, 1);
                     var users = usermap.get(query1.name);
@@ -103,7 +103,7 @@ describe('Object query tests', function() {
             }).then(() => session.close());
         });
     });
-    
+
     it('Unnamed object queries should aggregate into undefined key', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
@@ -116,7 +116,7 @@ describe('Object query tests', function() {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 3;',
                     mask: 'single'
                 };
-                
+
                 var query3: SingleResultQuery<User> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 3;',
                     mask: 'single',
@@ -135,7 +135,7 @@ describe('Object query tests', function() {
             }).then(() => session.close());
         });
     });
-    
+
     it('Multiple object queries should not produce an array with holes', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
@@ -144,19 +144,19 @@ describe('Object query tests', function() {
                     mask: 'single',
                     name: 'getUserById'
                 };
-                
+
                 var query2: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 0;',
                     mask: 'single',
                     name: 'getUserById'
                 };
-                
+
                 var query3: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 3;',
                     mask: 'single',
                     name: 'getUserById'
                 };
-                
+
                 return session.execute([query1, query2, query3]).then((results) => {
                     assert.strictEqual(results.size, 1);
                     var users = results.get(query1.name);
@@ -167,7 +167,7 @@ describe('Object query tests', function() {
             }).then(() => session.close());
         });
     });
-    
+
     it('Object query with a handler should be parsed using custom parsing method', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
@@ -185,7 +185,7 @@ describe('Object query tests', function() {
             }).then(() => session.close());
         });
     });
-    
+
     it('Multiple object queries with a handler should be parsed using custom parsing method', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
@@ -196,7 +196,7 @@ describe('Object query tests', function() {
                         parse: (row: any) => row.id
                     }
                 };
-                
+
                 var query2: SingleResultQuery<number> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id = 2;',
                     mask: 'single',
@@ -219,7 +219,7 @@ describe('Object query tests', function() {
 // LIST QUERY TESTS
 // ================================================================================================
 describe('List query tests', function () {
-    
+
     it('List query should return an array of objects', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
@@ -227,7 +227,7 @@ describe('List query tests', function () {
                     text: 'SELECT * FROM tmp_users WHERE id IN (1, 3);',
                     mask: 'list'
                 };
-                
+
                 return session.execute(query).then((users) => {
                     assert.strictEqual(users.length, 2);
                     assert.strictEqual(users[0].id, 1);
@@ -246,7 +246,7 @@ describe('List query tests', function () {
                     text: 'SELECT * FROM tmp_users WHERE id IN (0);',
                     mask: 'list'
                 };
-                
+
                 return session.execute(query).then((users) => {
                     assert.strictEqual(users.length, 0);
                 });
@@ -262,13 +262,13 @@ describe('List query tests', function () {
                     mask: 'list',
                     name: 'query1'
                 };
-                
+
                 var query2: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (3);',
                     mask: 'list',
                     name: 'query2'
                 };
-                
+
                 return session.execute([query1, query2]).then((results) => {
                     assert.strictEqual(results.size, 2);
 
@@ -285,7 +285,7 @@ describe('List query tests', function () {
             }).then(() => session.close());
         });
     });
-    
+
     it('Multiple list queries with the same name should produce a Map with a single key', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
@@ -294,13 +294,13 @@ describe('List query tests', function () {
                     mask: 'list',
                     name: 'query'
                 };
-                
+
                 var query2: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (3);',
                     mask: 'list',
                     name: 'query'
                 };
-                
+
                 return session.execute([query1, query2]).then((results) => {
                     assert.strictEqual(results.size, 1);
 
@@ -317,7 +317,7 @@ describe('List query tests', function () {
             }).then(() => session.close());
         });
     });
-    
+
     it('Multiple list queries with the same name should produce an array for every query', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
@@ -326,19 +326,19 @@ describe('List query tests', function () {
                     mask: 'list',
                     name: 'query'
                 };
-                
+
                 var query2: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (0);',
                     mask: 'list',
                     name: 'query'
                 };
-                
+
                 var query3: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (3);',
                     mask: 'list',
                     name: 'query'
                 };
-                
+
                 return session.execute([query1, query2, query3]).then((results) => {
                     assert.strictEqual(results.size, 1);
 
@@ -365,12 +365,12 @@ describe('List query tests', function () {
                     text: 'SELECT * FROM tmp_users WHERE id IN (1, 2);',
                     mask: 'list'
                 };
-                
+
                 var query2: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (3);',
                     mask: 'list'
                 };
-                
+
                 return session.execute([query1, query2]).then((results) => {
                     assert.strictEqual(results.size, 1);
 
@@ -452,7 +452,7 @@ describe('Mixed query tests', function () {
                     mask: 'single',
                     name: 'query1'
                 };
-                
+
                 var query2: ListResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id IN (1, 3);',
                     mask: 'list',
@@ -460,7 +460,7 @@ describe('Mixed query tests', function () {
                 };
                 return session.execute([query1, query2]).then((results) => {
                     assert.strictEqual(results.size, 2);
-                    
+
                     var user = results.get(query1.name);
                     assert.strictEqual(user.id, 2);
                     assert.strictEqual(user.username, 'Yason');
@@ -512,7 +512,7 @@ describe('Mixed query tests', function () {
             }).then(() => session.close());
         });
     });
-    
+
     it('Unnamed non-result queries should not produce holes in result array', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
@@ -529,7 +529,7 @@ describe('Mixed query tests', function () {
                     text: 'SELECT id, username FROM tmp_users WHERE id IN (2, 3);',
                     mask: 'list'
                 };
-                
+
                 var query4: ListResultQuery<{ id: number, username: string }> = {
                     text: 'SELECT id, username FROM tmp_users WHERE id IN (2, 3);',
                     mask: 'list',
@@ -569,7 +569,7 @@ describe('Parametrized query tests', function () {
                         id: 2
                     }
                 };
-                
+
                 return session.execute(query).then((user) => {
                     assert.strictEqual(user.id, 2);
                     assert.strictEqual(user.username, 'Yason');
@@ -588,7 +588,7 @@ describe('Parametrized query tests', function () {
                         username: 'Yason'
                     }
                 };
-                
+
                 return session.execute(query).then((user) => {
                     assert.strictEqual(user.id, 2);
                     assert.strictEqual(user.username, 'Yason');
@@ -607,7 +607,7 @@ describe('Parametrized query tests', function () {
                         username: `T'est`
                     }
                 };
-                
+
                 return session.execute(query).then((user) => {
                     assert.strictEqual(user.id, 4);
                     assert.strictEqual(user.username, `T'est`);
@@ -615,7 +615,7 @@ describe('Parametrized query tests', function () {
             }).then(() => session.close());
         });
     });
-    
+
     it('Mix of parametrized and non-parametrized queries should return correct result map', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
@@ -624,13 +624,13 @@ describe('Parametrized query tests', function () {
                     mask: 'single',
                     name: 'query1'
                 };
-                
+
                 var query2: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 2;',
                     mask: 'single',
                     name: 'query2'
                 };
-                
+
                 var query3: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE username = {{username}};',
                     mask: 'single',
@@ -639,28 +639,28 @@ describe('Parametrized query tests', function () {
                         username: `T'est`
                     }
                 };
-                
+
                 var query4: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 3;',
                     mask: 'single',
                     name: 'query4'
                 };
-                
+
                 return session.execute([query1, query2, query3, query4]).then((results) => {
                     assert.strictEqual(results.size, 4);
-                    
+
                     var user1 = results.get(query1.name);
                     assert.strictEqual(user1.id, 1);
                     assert.strictEqual(user1.username, 'Irakliy');
-                    
+
                     var user2 = results.get(query2.name);
                     assert.strictEqual(user2.id, 2);
                     assert.strictEqual(user2.username, 'Yason');
-                    
+
                     var user3 = results.get(query3.name);
                     assert.strictEqual(user3.id, 4);
                     assert.strictEqual(user3.username, `T'est`);
-                    
+
                     var user4 = results.get(query4.name);
                     assert.strictEqual(user4.id, 3);
                     assert.strictEqual(user4.username, `George`);
@@ -668,7 +668,7 @@ describe('Parametrized query tests', function () {
             }).then(() => session.close());
         });
     });
-    
+
     it('Two parametrized queries in a row should produce correct result', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
@@ -677,7 +677,7 @@ describe('Parametrized query tests', function () {
                     mask: 'single',
                     name: 'query1'
                 };
-                
+
                 var query2: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE username = {{username}};',
                     mask: 'single',
@@ -686,7 +686,7 @@ describe('Parametrized query tests', function () {
                         username: `T'est`
                     }
                 };
-                
+
                 var query3: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = {{id}};',
                     mask: 'single',
@@ -695,28 +695,28 @@ describe('Parametrized query tests', function () {
                         id: 2
                     }
                 };
-                
+
                 var query4: SingleResultQuery<User> = {
                     text: 'SELECT * FROM tmp_users WHERE id = 3;',
                     mask: 'single',
                     name: 'query4'
                 };
-                
+
                 return session.execute([query1, query2, query3, query4]).then((results) => {
                     assert.strictEqual(results.size, 4);
-                    
+
                     var user1 = results.get(query1.name);
                     assert.strictEqual(user1.id, 1);
                     assert.strictEqual(user1.username, 'Irakliy');
-                    
+
                     var user2 = results.get(query2.name);
                     assert.strictEqual(user2.id, 4);
                     assert.strictEqual(user2.username, `T'est`);
-                    
+
                     var user3 = results.get(query3.name);
                     assert.strictEqual(user3.id, 2);
                     assert.strictEqual(user3.username, 'Yason');
-                    
+
                     var user4 = results.get(query4.name);
                     assert.strictEqual(user4.id, 3);
                     assert.strictEqual(user4.username, `George`);
@@ -735,24 +735,24 @@ describe('Session lifecycle tests', function () {
         const poolState = database.getPoolState();
         assert.strictEqual(poolState.size, 0);
         assert.strictEqual(poolState.available, 0);
-        
+
         return database.connect().then((session) => {
             return prepareDatabase(session).then(()=> {
                 assert.strictEqual(session.isActive, true);
                 const poolState = database.getPoolState();
                 assert.strictEqual(poolState.size, 1);
                 assert.strictEqual(poolState.available, 0);
-                
+
                 return session.close().then(() => {
                     assert.strictEqual(session.isActive, false);
                     const poolState = database.getPoolState();
                     assert.strictEqual(poolState.size, 1);
                     assert.strictEqual(poolState.available, 1);
-                });  
+                });
             });
         });
     });
-    
+
     it('Starting a lazy transaction should put session into Transaction state', () => {
         var database = new Database(settings);
         return database.connect().then((session) => {
@@ -764,12 +764,12 @@ describe('Session lifecycle tests', function () {
                     return session.close('rollback').then(() => {
                         assert.strictEqual(session.isActive, false);
                         assert.strictEqual(session.inTransaction, false);
-                    }); 
+                    });
                 });
             });
         });
     });
-        
+
     it('Starting an eager transaction should put a session into Transaction state', () => {
         var database = new Database(settings);
         return database.connect().then((session) => {
@@ -781,12 +781,12 @@ describe('Session lifecycle tests', function () {
                     return session.close('rollback').then(() => {
                         assert.strictEqual(session.isActive, false);
                         assert.strictEqual(session.inTransaction, false);
-                    }); 
+                    });
                 });
             });
         });
     });
-    
+
     it('Commiting a transaction should update the data in the database', () => {
         var database = new Database(settings);
         return database.connect().then((session) => {
@@ -796,9 +796,9 @@ describe('Session lifecycle tests', function () {
                         text: 'UPDATE tmp_users SET username = {{un}} WHERE id = 1;',
                         params: {
                             un: 'Test'
-                        }    
+                        }
                     };
-                    
+
                     return session.execute(query).then(() => {
                         return session.close('commit').then(() => {
                             assert.strictEqual(session.isActive, false);
@@ -821,7 +821,7 @@ describe('Session lifecycle tests', function () {
             })
         });
     });
-    
+
     it('Rolling back a transaction should not change the data in the database', () => {
         var database = new Database(settings);
         return database.connect().then((session) => {
@@ -831,9 +831,9 @@ describe('Session lifecycle tests', function () {
                         text: 'UPDATE tmp_users SET username = {{un}} WHERE id = 1;',
                         params: {
                             un: 'Test'
-                        }    
+                        }
                     };
-                    
+
                     return session.execute(query).then(() => {
                         return session.close('rollback').then(() => {
                             assert.strictEqual(session.isActive, false);
@@ -849,7 +849,7 @@ describe('Session lifecycle tests', function () {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
                     mask: 'single'
                 };
-                
+
                 return session.execute(query).then((user) => {
                     assert.strictEqual(user.id, 1);
                     assert.strictEqual(user.username, 'Irakliy');
@@ -864,13 +864,13 @@ describe('Session lifecycle tests', function () {
 describe('Error condition tests', function () {
 
     it('Query execution error should close the session and release the connection back to the pool', () => {
-        var database = new Database(settings); 
+        var database = new Database(settings);
         return database.connect().then((session) => {
             return prepareDatabase(session).then(() => {
                 var query = {
-                    text: undefined    
+                    text: undefined
                 };
-                
+
                 return session.execute(query)
                     .then(() => {
                         assert.fail();
@@ -885,7 +885,7 @@ describe('Error condition tests', function () {
             });
         });
     });
-    
+
     it('Query execution error should roll back an active transaction', () => {
         var database = new Database(settings);
         return database.connect().then((session) => {
@@ -894,12 +894,12 @@ describe('Error condition tests', function () {
                     var query: Query = {
                         text: `UPDATE tmp_users SET username = 'Test' WHERE id = 1;`
                     };
-                    
+
                     return session.execute(query).then(() => {
                         var errorQuery = {
-                            text: undefined    
+                            text: undefined
                         };
-                        
+
                         return session.execute(errorQuery).then(() => {
                             assert.fail();
                         }).catch((reason) => {
@@ -919,7 +919,7 @@ describe('Error condition tests', function () {
                     text: 'SELECT * FROM tmp_users WHERE id = 1;',
                     mask: 'single'
                 };
-                
+
                 return session.execute(query).then((user) => {
                     assert.strictEqual(user.id, 1);
                     assert.strictEqual(user.username, 'Irakliy');
@@ -927,9 +927,9 @@ describe('Error condition tests', function () {
             })
         });
     });
-    
+
     it('Starting a transaction on a closed session should throw an error', () => {
-        var database = new Database(settings); 
+        var database = new Database(settings);
         return database.connect().then((session) => {
             return session.close().then(() => {
                 return session.startTransaction()
@@ -946,9 +946,9 @@ describe('Error condition tests', function () {
             });
         });
     });
-    
+
     it('Starting a transaction when a session is in transaction should throw an error', () => {
-        var database = new Database(settings); 
+        var database = new Database(settings);
         return database.connect().then((session) => {
             return session.startTransaction().then(() => {
                 return session.startTransaction()
@@ -963,9 +963,9 @@ describe('Error condition tests', function () {
             }).then(() => session.close('rollback'));;
         });
     });
-    
+
     it('Closing an already closed session should throw an error', () => {
-        var database = new Database(settings); 
+        var database = new Database(settings);
         return database.connect().then((session) => {
             return session.close().then(() => {
                 return session.close()
@@ -980,9 +980,9 @@ describe('Error condition tests', function () {
             });
         });
     });
-    
+
     it('Closing a session with an uncommitted transaction should throw an error', () => {
-        var database = new Database(settings); 
+        var database = new Database(settings);
         return database.connect().then((session) => {
             return session.startTransaction().then(() => {
                 return session.close()
@@ -997,16 +997,16 @@ describe('Error condition tests', function () {
             });
         });
     });
-    
+
     it('Executing a query on a closed session should throw an error', () => {
-        var database = new Database(settings); 
+        var database = new Database(settings);
         return database.connect().then((session) => {
             return prepareDatabase(session).then(() => {
                 return session.close().then(() => {
                    var query: Query = {
-                        text: undefined    
+                        text: undefined
                     };
-                
+
                     return session.execute(query)
                         .then(() => {
                             assert.fail();
@@ -1017,20 +1017,20 @@ describe('Error condition tests', function () {
                             assert.strictEqual(session.isActive, false);
                             assert.strictEqual(database.getPoolState().size, 1);
                             assert.strictEqual(database.getPoolState().available, 1);
-                        }); 
+                        });
                 });
             });
         });
     });
-    
+
     it('Executing a query with no text should throw an error and close the session', () => {
-        var database = new Database(settings); 
+        var database = new Database(settings);
         return database.connect().then((session) => {
             return prepareDatabase(session).then(() => {
                 var query: Query = {
-                    text: undefined    
+                    text: undefined
                 };
-                
+
                 return session.execute(query)
                     .then(() => {
                         assert.fail();
@@ -1045,15 +1045,15 @@ describe('Error condition tests', function () {
             });
         });
     });
-    
+
     it('Executing a query with invalid SQL should throw an error and close the session', () => {
-        var database = new Database(settings); 
+        var database = new Database(settings);
         return database.connect().then((session) => {
             return prepareDatabase(session).then(() => {
                 var query: Query = {
-                    text: 'SELLECT * FROM tmp_users;'    
+                    text: 'SELLECT * FROM tmp_users;'
                 };
-                
+
                 return session.execute(query)
                     .then(() => {
                         assert.fail();
@@ -1068,7 +1068,7 @@ describe('Error condition tests', function () {
             });
         });
     });
-    
+
     it('Executing a query with invalid result parser should throw an error and close the session', () => {
         var database = new Database(settings);
         return database.connect().then((session) => {
@@ -1080,9 +1080,9 @@ describe('Error condition tests', function () {
                         parse: (row: any) => {
                             throw new Error('Parsing error')
                         }
-                    }    
+                    }
                 };
-                
+
                 return session.execute(query)
                     .then(() => {
                         assert.fail();
@@ -1097,7 +1097,7 @@ describe('Error condition tests', function () {
             });
         });
     });
-    
+
     it('Attempt to connect to a non-existing database should throw an error', () => {
         var settings1 = JSON.parse(JSON.stringify(settings));
         settings1.connection.database = 'invalid';
@@ -1180,5 +1180,4 @@ describe('Error condition tests', function () {
             });
         });
     });
-
 });

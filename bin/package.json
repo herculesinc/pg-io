@@ -29,7 +29,7 @@
   "devDependencies": {
     "del": "2.2.x",
     "gulp": "3.9.x",
-    "gulp-mocha": "2.2.x",
+    "gulp-mocha": "4.1.x",
     "gulp-util": "3.0.x",
     "mocha": "2.5.x"
   }

@@ -33,8 +33,8 @@ export const defaults: Defaults = {
         logQueryText    : false
     },
     pool: {
-        maxSize         : 20,
-        idleTimeout     : 30000,
-        reapInterval    : 1000
+        maxSize          : 20,
+        idleTimeout      : 30000,
+        connectionTimeout: 1000
     }
 };

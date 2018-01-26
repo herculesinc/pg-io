@@ -14,21 +14,22 @@ declare module "pg" {
     export function end(): void;
 
     export interface ConnectionConfig {
-        user?       : string;
-        database?   : string;
-        password?   : string;
-        port?       : number;
-        host?       : string;
-        max?        : number;
-        min?        : number;
-        idleTimeoutMillis?: number;
-        reapIntervalMillis?: number;
+        user?                   : string;
+        database?               : string;
+        password?               : string;
+        port?                   : number;
+        host?                   : string;
+        max?                    : number;
+        min?                    : number;
+        log?                    : (data: any) => void;
+        idleTimeoutMillis?      : number;
+        connectionTimeoutMillis?: number;
     }
 
     export interface Defaults extends ConnectionConfig {
         poolSize?: number;
         poolIdleTimeout?: number;
-        reapIntervalMillis?: number;
+        connectionTimeoutMillis?: number;
         binary?: boolean;
         parseInt8?: boolean;
     }
