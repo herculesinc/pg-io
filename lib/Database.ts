@@ -3,9 +3,10 @@
 import * as events from 'events';
 import * as pg from 'pg';
 import { ConnectionError } from './errors';
+import { ConnectionPool } from './Pool';
 import { Session, SessionOptions } from './Session';
 import { defaults } from './defaults';
-import { since, Logger } from './util';
+import { Logger, buildLogger, DbLogger } from './util';
 
 // MODULE VARIABLES
 // ================================================================================================
@@ -45,104 +46,115 @@ export interface PoolState {
 // ================================================================================================
 export class Database extends events.EventEmitter {
 
-    name     : string;
-    pgPool   : pg.Pool;
-    logger?  : Logger;
-    Session  : typeof Session;
-    sOptions : SessionOptions;
+    readonly name       : string;
+    readonly pool       : ConnectionPool;
+    readonly logger     : DbLogger;
+    readonly Session    : typeof Session;
+    readonly sOptions   : SessionOptions;
 
     constructor(options: DatabaseOptions, logger?: Logger, SessionCtr?: typeof Session) {
         super();
 
         if (!options) throw TypeError('Cannot create a Database: options are undefined');
-        if (!options.connection) throw TypeError('Cannot create a Database: connection settings are undefined');
+        if (!options.connection) throw TypeError('Cannot create a Database: connection options are undefined');
 
         // set basic properties
         this.name = options.name || defaults.name;
         this.Session = SessionCtr || defaults.SessionCtr;
-        this.sOptions = Object.assign({}, options.session, defaults.session);
-        this.logger = validateLogger(logger);
+        this.sOptions = validateSessionOptions(options.session);
+        this.logger = buildLogger(this.name, logger);
 
         // initialize connection pool
-        const connectionSettings = Object.assign({}, defaults.connection, options.connection);
-        const poolOptions = Object.assign({}, defaults.pool, options.pool);
-        this.pgPool = new pg.Pool(buildPgPoolOptions(connectionSettings, poolOptions));
+        const connectionOptions = validateConnectionOptions(options.connection);
+        const poolOptions = validatePoolOptions(options.pool);
+        this.pool = new ConnectionPool(poolOptions, connectionOptions, this.logger);
 
-        this.pgPool.on('error', (error) => {
-            //this.logger && this.logger.warn('pg.pool error: ' + error.message);
-            //turn off error emitter because pgPool emits duplicate errors when client creation fails
+        this.pool.on('error', (error) => {
             this.emit(ERROR_EVENT, error);
         });
-
-        this.pgPool.on('remove', client => {
-            console.log('------------- pgPool remove client -------------');
-            console.log('removed client - ', client.processID);
-            console.log(`All clients - [${(this.pgPool as any)._clients.map(c => c.processID).join(',')}]`);
-            console.log(`Idle clients - [${(this.pgPool as any)._idle.map(c => c.processID).join(',')}]`);
-            console.log('------------------------------------------------');
-        })
     }
 
     connect(options?: SessionOptions): Promise<Session> {
-        options = Object.assign({}, this.sOptions, options);
+        options = validateSessionOptions(options);
 
         const start = process.hrtime();
 
-        this.logger && this.logger.debug(`Connecting to the database; pool state ${this.getPoolDescription()}`, this.name);
+        this.logger.debug(`Connecting to the database; pool state ${this.getPoolDescription()}`);
         return new Promise((resolve, reject) => {
-            this.pgPool.connect((error, client) => {
-                this.logger && this.logger.trace(this.name, 'connected', since(start), !error);
-                if (error) return reject(new ConnectionError(error));
-
-                const session = new this.Session(this.name, client, options, this.logger);
-                resolve(session);
+            this.pool.acquire((error, client) => {
+                this.logger.trace('acquire connection', start, !error);
+                if (error) {
+                    reject(error);
+                }
+                else {
+                    const session = new this.Session(client, options, this.logger);
+                    resolve(session);
+                }
             });
         });
     }
 
     close(): Promise<any> {
-        return this.pgPool.end();
+        const start = process.hrtime();
+        this.logger.debug(`Closing database; pool state ${this.getPoolDescription()}`)
+        return new Promise((resolve, reject) => {
+            this.pool.shutdown((error) => {
+                this.logger.trace('close database', start, !error);
+                if (error) {
+                    reject(error);
+                }
+                else {
+                    resolve();
+                }
+            });
+        });
     }
 
     // POOL INFO ACCESSORS
     // --------------------------------------------------------------------------------------------
     getPoolState(): PoolState {
         return {
-            size        : this.pgPool.totalCount,
-            available   : this.pgPool.idleCount
+            size        : this.pool.totalCount,
+            available   : this.pool.idleCount
         };
     }
 
     getPoolDescription(): string {
-        return `{ size: ${this.pgPool.totalCount}, available: ${this.pgPool.idleCount} }`;
+        return `{ size: ${this.pool.totalCount}, available: ${this.pool.idleCount} }`;
     }
 }
 
 // HELPER FUNCTIONS
 // ================================================================================================
-function validateLogger(logger: Logger): Logger {
-    if (!logger) return undefined;
+function validateConnectionOptions(options: ConnectionSettings): ConnectionSettings {
+    options = {...defaults.connection, ...options };
 
-    if (typeof logger !== 'object') throw new TypeError('Logger is invalid');
-    if (typeof logger.debug !== 'function') throw new TypeError('Logger is invalid');
-    if (typeof logger.info !== 'function') throw new TypeError('Logger is invalid');
-    if (typeof logger.warn !== 'function') throw new TypeError('Logger is invalid');
-    if (typeof logger.trace !== 'function') throw new TypeError('Logger is invalid');
+    if (typeof options.host !== 'string') throw new TypeError('Connection options are invalid');
+    if (typeof options.port !== 'number') throw new TypeError('Connection options are invalid');
+    if (typeof options.ssl !== 'boolean') throw new TypeError('Connection options are invalid');
+    if (typeof options.database !== 'string') throw new TypeError('Connection options are invalid');
+    if (typeof options.user !== 'string') throw new TypeError('Connection options are invalid');
+    if (typeof options.password !== 'string') throw new TypeError('Connection options are invalid');
 
-    return logger;
+    return options;
 }
 
-function buildPgPoolOptions(conn: ConnectionSettings, pool: PoolOptions): pg.ClientConfig {
-    return {
-        host                   : conn.host,
-        port                   : conn.port,
-        ssl                    : conn.ssl,
-        user                   : conn.user,
-        password               : conn.password,
-        database               : conn.database,
-        max                    : pool.maxSize,
-        log                    : pool.log,
-        idleTimeoutMillis      : pool.idleTimeout,
-        connectionTimeoutMillis: pool.connectionTimeout
-    };
+function validatePoolOptions(options: PoolOptions): PoolOptions {
+    options = {...defaults.pool, ...options };
+
+    if (typeof options.maxSize !== 'number') throw new TypeError('Pool options are invalid');
+    if (typeof options.idleTimeout !== 'number') throw new TypeError('Pool options are invalid');
+    if (typeof options.connectionTimeout !== 'number') throw new TypeError('Pool options are invalid');
+
+    return options;
+}
+
+function validateSessionOptions(options: SessionOptions): SessionOptions {
+    options = {...defaults.session, ...options };
+
+    if (typeof options.startTransaction !== 'boolean') throw new TypeError('Session options are invalid');
+    if (typeof options.collapseQueries !== 'boolean') throw new TypeError('Session options are invalid');
+    if (typeof options.logQueryText !== 'boolean') throw new TypeError('Session options are invalid');
+
+    return options;
 }

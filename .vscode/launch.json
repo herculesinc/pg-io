@@ -14,8 +14,7 @@
             },
             "console": "externalTerminal",
             "sourceMaps": true,
-			"outFiles": ["${workspaceRoot}/bin/**/*.js"],
-			"preLaunchTask": "build"
+			"outFiles": ["${workspaceRoot}/bin/**/*.js"]
 		}
 	]
 }

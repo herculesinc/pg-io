@@ -35,6 +35,6 @@ export const defaults: Defaults = {
     pool: {
         maxSize          : 20,
         idleTimeout      : 30000,
-        connectionTimeout: 1000
+        connectionTimeout: 5000
     }
 };

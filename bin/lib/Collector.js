@@ -1,5 +1,6 @@
 "use strict";
-const Query_1 = require('./Query');
+Object.defineProperty(exports, "__esModule", { value: true });
+const Query_1 = require("./Query");
 // CLASS DEFINITION
 // ================================================================================================
 class Collector {

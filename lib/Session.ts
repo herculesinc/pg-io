@@ -8,7 +8,7 @@ import {
 import { Collector } from './Collector';
 import { PgError, ConnectionError, TransactionError, QueryError, ParseError } from './errors';
 import { defaults } from './defaults';
-import { since, Logger } from './util';
+import { DbLogger } from './util';
 
 // INTERFACES AND ENUMS
 // ================================================================================================
@@ -26,19 +26,17 @@ const enum TransactionState {
 // ================================================================================================
 export class Session {
 
-    dbName      : string;
     client      : Client;
     options     : SessionOptions;
     transaction : TransactionState;
     closing     : boolean;
-    logger?     : Logger;
+    logger      : DbLogger;
     clientError?: Error;
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    constructor(dbName: string, client: Client, options: SessionOptions, logger?: Logger) {
+    constructor(client: Client, options: SessionOptions, logger: DbLogger) {
         if (!client) throw new ConnectionError('Cannot create a connection session: client is undefined');
-        this.dbName = dbName;
         this.client = client;
         this.options = options;
         this.logger = logger;
@@ -46,7 +44,7 @@ export class Session {
         this.clientError = null;
 
         if (this.options.startTransaction) {
-            this.logger && this.logger.debug(`Starting database transaction in lazy mode`, this.dbName)
+            this.logger.debug(`Starting database transaction in lazy mode`);
             this.transaction = TransactionState.pending;
         }
 
@@ -81,7 +79,7 @@ export class Session {
                 new TransactionError('Cannot start transaction: session is already in transaction'));
         }
 
-        this.logger && this.logger.debug(`Starting database transaction in ${lazy ? 'lazy' : 'eager'} mode`, this.dbName);
+        this.logger.debug(`Starting database transaction in ${lazy ? 'lazy' : 'eager'} mode`,);
         if (lazy) {
             this.transaction = TransactionState.pending;
             return Promise.resolve();
@@ -101,14 +99,14 @@ export class Session {
 
         switch (action) {
             case 'commit':
-                this.logger && this.logger.debug('Committing transaction and closing the session', this.dbName);
+                this.logger.debug('Committing transaction and closing the session');
                 const commitPromise = this.execute(COMMIT_TRANSACTION).then(() => this.releaseConnection());
                 this.closing = true;
                 return commitPromise;
             case 'rollback':
                 return this.rollbackAndRelease();
             default:
-                this.logger && this.logger.debug('Closing the session', this.dbName);
+                this.logger.debug('Closing the session');
                 if (this.inTransaction) {
                     return this.rollbackAndRelease(
                         new TransactionError('Uncommitted transaction detected while closing the session'));
@@ -138,10 +136,10 @@ export class Session {
 
         if (this.options.logQueryText) {
             const queryText = buildQueryText(queries);
-            this.logger && this.logger.debug(`Executing ${queries.length} queries:\n${queryText}`, this.dbName);
+            this.logger.debug(`Executing ${queries.length} queries:\n${queryText}`);
         }
         else {
-            this.logger && this.logger.debug(`Executing ${queries.length} queries: [${command}]`, this.dbName);
+            this.logger.debug(`Executing ${queries.length} queries: [${command}]`);
         }
 
         return Promise.resolve()
@@ -150,7 +148,7 @@ export class Session {
             .then((queryResults) => Promise.all(queryResults))
             .then((results) => {
                 try {
-                    this.logger && this.logger.trace(this.dbName, command, since(start), true);
+                    this.logger.trace(command, start, true);
                     start = process.hrtime();
 
                     const flatResults = results.reduce((agg: any[], result) => agg.concat(result), []);
@@ -165,7 +163,7 @@ export class Session {
                     }
 
                     this.transaction = transaction;
-                    this.logger && this.logger.debug(`Query results processed in ${since(start)} ms`, this.dbName);
+                    this.logger.debug(`Query results processed in ${start} ms`);
                     return collector.getResults();
                 }
                 catch (error) {
@@ -175,7 +173,7 @@ export class Session {
                 }
             })
             .catch((reason) => {
-                this.logger && this.logger.trace(this.dbName, command, since(start), false);
+                this.logger.trace(command, start, false);
                 return this.rollbackAndRelease(reason);
             });
     }
@@ -198,7 +196,7 @@ export class Session {
     }
 
     protected rollbackAndRelease(reason?: any): Promise<any> {
-        this.logger && this.logger.debug('Rolling back transaction and closing the session', this.dbName);
+        this.logger.debug('Rolling back transaction and closing the session');
 
         const rollbackPromise = new Promise((resolve, reject) => {
             if (this.clientError) {
@@ -236,10 +234,10 @@ export class Session {
         if (this.client) {
             this.client.release(error);
             this.client = undefined;
-            this.logger && this.logger.debug('Session closed', this.dbName);
+            this.logger.debug('Session closed');
         }
         else {
-            this.logger && this.logger.warn('Overlapping connection release detected', this.dbName);
+            this.logger.warn('Overlapping connection release detected');
         }
     }
 
