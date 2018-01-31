@@ -1,11 +1,11 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 // IMPORTS
 // ================================================================================================
-const events = require("events");
-const Pool_1 = require("./Pool");
-const defaults_1 = require("./defaults");
-const util_1 = require("./util");
+const events = require('events');
+const errors_1 = require('./errors');
+const Pool_1 = require('./Pool');
+const defaults_1 = require('./defaults');
+const util_1 = require('./util');
 // MODULE VARIABLES
 // ================================================================================================
 const ERROR_EVENT = 'error';
@@ -39,7 +39,7 @@ class Database extends events.EventEmitter {
             this.pool.acquire((error, client) => {
                 this.logger.trace('acquire connection', start, !error);
                 if (error) {
-                    reject(error);
+                    reject(new errors_1.ConnectionError(error));
                 }
                 else {
                     const session = new this.Session(client, options, this.logger);

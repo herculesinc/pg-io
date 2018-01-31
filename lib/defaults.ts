@@ -25,7 +25,7 @@ export const defaults: Defaults = {
         ssl             : false,
         user            : undefined,
         password        : undefined,
-        database        : undefined,
+        database        : undefined
     },
     session: {
         startTransaction: false,

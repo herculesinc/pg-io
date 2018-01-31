@@ -5,5 +5,10 @@ export const settings = {
         user    : 'postgres',
         password: 'RepT%8&G5l1I',
         database: 'postgres'
+    },
+    pool: {
+        maxSize          : 10,
+        idleTimeout      : 10000,
+        connectionTimeout: 1000
     }
 };

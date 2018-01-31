@@ -26,7 +26,7 @@ const noopLogger: DbLogger = {
 
 // LOGGER
 // ================================================================================================
-export function buildLogger(dbName: string, logger: Logger): DbLogger {
+export function buildLogger(dbName: string, logger?: Logger): DbLogger {
     if (!logger) return noopLogger;
 
     if (typeof logger !== 'object') throw new TypeError('Logger is invalid');

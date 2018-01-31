@@ -75,8 +75,10 @@ declare module "pg" {
         connect(callback?: (err: Error) => void): void;
         end(callback?: (err?: Error) => void): void;
 
+        query(queryText: string): Promise<any>;
         query(queryText: string, callback?: (err: Error, result: QueryResult) => void): Query;
         query(config: QueryConfig, callback?: (err: Error, result: QueryResult) => void): Query;
+        query(queryText: string, values: any[]): Promise<any>;
         query(queryText: string, values: any[], callback?: (err: Error, result: QueryResult) => void): Query;
 
         copyFrom(queryText: string): stream.Writable;

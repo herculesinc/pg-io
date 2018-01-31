@@ -1,15 +1,14 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 // IMPORTS
 // ================================================================================================
-const events = require("events");
-const pg_1 = require("pg");
-const errors_1 = require("./errors");
+const events = require('events');
+const pg_1 = require('pg');
+const errors_1 = require('./errors');
 // MODULE VARIABLES
 // ================================================================================================
-const ERROR_EVENT = 'error';
-const CREATED_EVENT = 'connection created';
-const CLOSED_EVENT = 'connection closed';
+exports.ERROR_EVENT = 'error';
+exports.CREATED_EVENT = 'connection created';
+exports.CLOSED_EVENT = 'connection closed';
 // CLASS DEFINITION
 // ================================================================================================
 class ConnectionPool extends events.EventEmitter {
@@ -49,6 +48,9 @@ class ConnectionPool extends events.EventEmitter {
         }
         this.state = 3 /* closing */;
         this.shutdownCallback = callback;
+        if (!this.totalCount) {
+            this.shutdownCallback();
+        }
         // clear pending requests
         for (let request of this.requests) {
             const error = new errors_1.ConnectionError('Connection pool is shutting down');
@@ -76,7 +78,7 @@ class ConnectionPool extends events.EventEmitter {
             return;
         }
         // if there are no idle clients available, set a timeout for fulfilling the request
-        request.setTimeout(this.pOptions.connectionTimeout);
+        request.setTimeout(this.pOptions.connectionTimeout, this.removeClient.bind(this));
         // if the pool is exhausted, queue the request and return
         if (this.clients.size >= this.pOptions.maxSize) {
             this.requests.push(request);
@@ -86,6 +88,7 @@ class ConnectionPool extends events.EventEmitter {
         this.logger.debug('creating new connection');
         const client = new pg_1.Client(this.cOptions);
         this.clients.add(client);
+        request.setClient(client);
         client.connect((error) => {
             this.logger.trace('create connection', start, !error);
             if (error) {
@@ -93,7 +96,7 @@ class ConnectionPool extends events.EventEmitter {
                 request.reject(error);
                 return;
             }
-            this.emit(CREATED_EVENT, client);
+            this.emit(exports.CREATED_EVENT, client);
             if (this.state === 3 /* closing */) {
                 // if the pool is shutting down, the request should already be rejected
                 if (request.isPending)
@@ -106,7 +109,7 @@ class ConnectionPool extends events.EventEmitter {
                         this.logger.debug('Client error after disconnect: ' + error.message);
                     });
                     this.removeClient(client);
-                    this.emit(ERROR_EVENT, error, client);
+                    this.emit(exports.ERROR_EVENT, error, client);
                 });
                 if (request.isPending) {
                     request.fulfill(client, this.releaseClient.bind(this, client));
@@ -141,7 +144,7 @@ class ConnectionPool extends events.EventEmitter {
         // disconnect the client
         client.end((error) => {
             this.logger.debug('Connection closed' + (error ? ' with error: ' + error.message : ''));
-            this.emit(CLOSED_EVENT, client);
+            this.emit(exports.CLOSED_EVENT, client);
         });
         if (this.state === 3 /* closing */ && this.clients.size === 0) {
             this.state = 4 /* closed */;
@@ -181,7 +184,10 @@ class ConnectionRequest {
     get isPending() {
         return (this.callback !== undefined);
     }
-    setTimeout(ms) {
+    setClient(client) {
+        this.client = client;
+    }
+    setTimeout(ms, errorHandler) {
         if (this.timeoutId) {
             throw new Error('Cannot set connection request timeout: the timeout is already set');
         }
@@ -189,6 +195,7 @@ class ConnectionRequest {
             if (this.isPending) {
                 const error = new errors_1.ConnectionError('Connection request has timed out');
                 process.nextTick(this.callback, error);
+                this.client && errorHandler(this.client);
                 this.callback = undefined;
             }
         }, ms);
