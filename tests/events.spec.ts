@@ -1,9 +1,6 @@
 import {expect} from 'chai';
-import {EventEmitter} from 'events';
 
-import {Client, QueryResult} from 'pg';
-import {ConnectionPool, PoolOptions, ERROR_EVENT, CREATED_EVENT, CLOSED_EVENT} from '../lib/Pool';
-import {ConnectionError} from '../lib/errors';
+import {ConnectionPool, ERROR_EVENT, CREATED_EVENT, CLOSED_EVENT} from '../lib/Pool';
 import {settings} from './settings';
 import {buildLogger} from '../lib/util';
 
@@ -11,7 +8,7 @@ const createNewPool = (): ConnectionPool => {
     return new ConnectionPool(settings.pool, settings.connection, buildLogger('test'));
 };
 
-describe('events;', () => {
+describe('Pool Events;', () => {
     it('emits acquire before callback', done => {
         const pool = createNewPool();
         let emittedClient;

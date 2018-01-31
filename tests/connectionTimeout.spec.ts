@@ -6,7 +6,7 @@ import {ConnectionError} from '../lib/errors';
 import {settings} from './settings';
 import {buildLogger} from '../lib/util';
 
-describe('connection timeout;', () => {
+describe('Pool connection timeout;', () => {
     before(done => {
         this.server = net.createServer();
 

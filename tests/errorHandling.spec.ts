@@ -2,7 +2,6 @@ import {expect} from 'chai';
 
 import {Client, QueryResult} from 'pg';
 import {ConnectionPool, PoolOptions} from '../lib/Pool';
-import {ConnectionError} from '../lib/errors';
 import {settings} from './settings';
 import {buildLogger} from '../lib/util';
 
@@ -12,7 +11,7 @@ const createNewPool = (options?: PoolOptions): ConnectionPool => {
     return new ConnectionPool(poolSettings, settings.connection, buildLogger('test'));
 };
 
-describe('pool error handling;', () => {
+describe('Pool error handling;', () => {
     it('Should complete these queries without dying', done => {
         const iterations = 5;
         const pool = createNewPool();
@@ -23,7 +22,7 @@ describe('pool error handling;', () => {
         const runErrorQuery = (client: Client): Promise<QueryResult> => {
             shouldGet++;
 
-            return new Promise(function (resolve, reject) {
+            return new Promise(resolve => {
                 client.query('SELECT \'asd\'+1 ')
                     .catch(err => {
                         errors++;
@@ -138,7 +137,6 @@ describe('pool error handling;', () => {
         const iterations = 20;
         const queryValue = 'brianc';
         const pool = createNewPool({maxSize: 1});
-        const promises = Promise.resolve();
         const errors = [];
 
         const errorHandler = (err, cb: Function): void => {

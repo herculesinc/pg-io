@@ -9,7 +9,7 @@ import {settings} from './settings';
 
 // OBJECT QUERY TESTS
 // ================================================================================================
-describe('Object query tests', function () {
+describe('Object query tests;', function () {
 
     it('Object query should return a single object', () => {
         return new Database(settings).connect().then((session) => {
@@ -218,7 +218,7 @@ describe('Object query tests', function () {
 
 // LIST QUERY TESTS
 // ================================================================================================
-describe('List query tests', function () {
+describe('List query tests;', function () {
 
     it('List query should return an array of objects', () => {
         return new Database(settings).connect().then((session) => {
@@ -411,7 +411,7 @@ describe('List query tests', function () {
 
 // NON-RESULT QUERY TESTS
 // ================================================================================================
-describe('Non-result query tests', function () {
+describe('Non-result query tests;', function () {
 
     it('A non-result query should produce no results', () => {
         return new Database(settings).connect().then((session) => {
@@ -442,7 +442,7 @@ describe('Non-result query tests', function () {
 
 // MIXED QUERY TESTS
 // ================================================================================================
-describe('Mixed query tests', function () {
+describe('Mixed query tests;', function () {
 
     it('Multiple mixed queries should produce a Map of results', () => {
         return new Database(settings).connect().then((session) => {
@@ -557,7 +557,7 @@ describe('Mixed query tests', function () {
 
 // PARAMETRIZED QUERY TESTS
 // ================================================================================================
-describe('Parametrized query tests', function () {
+describe('Parametrized query tests;', function () {
 
     it('Object query parametrized with number should retrive correct row', () => {
         return new Database(settings).connect().then((session) => {
@@ -728,7 +728,7 @@ describe('Parametrized query tests', function () {
 
 // SESSION LIFECYCLE TESTS
 // ================================================================================================
-describe('Session lifecycle tests', function () {
+describe('Session lifecycle tests;', function () {
 
     it('Closing a session should return a connection back to the pool', () => {
         const database = new Database(settings);
@@ -861,7 +861,7 @@ describe('Session lifecycle tests', function () {
 
 // ERROR CONDITION TESTS
 // ================================================================================================
-describe('Error condition tests', function () {
+describe('Error condition tests;', function () {
 
     it('Query execution error should close the session and release the connection back to the pool', () => {
         const database = new Database(settings);
