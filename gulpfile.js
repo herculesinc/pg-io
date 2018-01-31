@@ -34,16 +34,16 @@ gulp.task('build', ['compile'], function (cb) {
 
 // run tests
 gulp.task('test', ['build'], function () {
-    return gulp.src('./bin/tests/**/*.js', { read: false })
-        .pipe( mocha( { reporter: 'spec', timeout: 45000, bail: false } ) )
+    return gulp.src('./bin/tests/**/*.spec.js', { read: false })
+        .pipe(mocha({reporter: 'spec', timeout: 5000, bail: false}))
         .once( 'error', err => {
-            if ( err && ( !err.message || !err.message.match( /failed/ ) ) ) {
-                gutil.log( gutil.colors.red( err.toString() ) );
+            if (err && (!err.message || !err.message.match( /failed/))) {
+                gutil.log(gutil.colors.red(err.toString()));
             }
 
-            process.exit( 1 );
+            process.exit(1);
         } )
-        .once( 'end', () =>  process.exit( 0 ) );
+        .once('end', () =>  process.exit(0));
 });
 
 // publish to npm

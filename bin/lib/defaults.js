@@ -1,6 +1,5 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const Session_1 = require("./Session");
+const Session_1 = require('./Session');
 // DEFAULTS
 // ================================================================================================
 exports.defaults = {
@@ -12,7 +11,7 @@ exports.defaults = {
         ssl: false,
         user: undefined,
         password: undefined,
-        database: undefined,
+        database: undefined
     },
     session: {
         startTransaction: false,

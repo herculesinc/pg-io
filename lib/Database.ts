@@ -25,9 +25,9 @@ export interface ConnectionSettings {
     host            : string;
     port?           : number;
     ssl?            : boolean;
+    database        : string;
     user            : string;
     password        : string;
-    database        : string;
 }
 
 export interface PoolOptions {
@@ -84,7 +84,7 @@ export class Database extends events.EventEmitter {
             this.pool.acquire((error, client) => {
                 this.logger.trace('acquire connection', start, !error);
                 if (error) {
-                    reject(error);
+                    reject(new ConnectionError(error));
                 }
                 else {
                     const session = new this.Session(client, options, this.logger);
@@ -127,7 +127,7 @@ export class Database extends events.EventEmitter {
 // HELPER FUNCTIONS
 // ================================================================================================
 function validateConnectionOptions(options: ConnectionSettings): ConnectionSettings {
-    options = {...defaults.connection, ...options };
+    options = Object.assign({}, defaults.connection, options);
 
     if (typeof options.host !== 'string') throw new TypeError('Connection options are invalid');
     if (typeof options.port !== 'number') throw new TypeError('Connection options are invalid');
@@ -140,7 +140,7 @@ function validateConnectionOptions(options: ConnectionSettings): ConnectionSetti
 }
 
 function validatePoolOptions(options: PoolOptions): PoolOptions {
-    options = {...defaults.pool, ...options };
+    options = Object.assign({}, defaults.pool, options);
 
     if (typeof options.maxSize !== 'number') throw new TypeError('Pool options are invalid');
     if (typeof options.idleTimeout !== 'number') throw new TypeError('Pool options are invalid');
@@ -150,7 +150,7 @@ function validatePoolOptions(options: PoolOptions): PoolOptions {
 }
 
 function validateSessionOptions(options: SessionOptions): SessionOptions {
-    options = {...defaults.session, ...options };
+    options = Object.assign({}, defaults.session, options);
 
     if (typeof options.startTransaction !== 'boolean') throw new TypeError('Session options are invalid');
     if (typeof options.collapseQueries !== 'boolean') throw new TypeError('Session options are invalid');

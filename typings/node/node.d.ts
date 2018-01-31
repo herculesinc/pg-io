@@ -442,7 +442,7 @@ declare namespace NodeJS {
                   | 'win32';
 
     export interface Socket extends ReadWriteStream {
-        isTTY?: true;
+        isTTY?: boolean;
     }
 
     export interface WriteStream extends Socket {
@@ -1972,11 +1972,11 @@ declare module "dns" {
     }
 
     export interface LookupOneOptions extends LookupOptions {
-        all?: false;
+        all?: boolean;
     }
 
     export interface LookupAllOptions extends LookupOptions {
-        all: true;
+        all: boolean;
     }
 
     export interface LookupAddress {
