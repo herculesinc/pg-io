@@ -113,6 +113,7 @@ export class ConnectionPool extends events.EventEmitter {
         if (this.idle.size > 0) {
             const [client, timeoutId] = this.idle.entries().next().value;
             clearTimeout(timeoutId);
+            this.idle.delete(client);
             request.fulfill(client, this.releaseClient.bind(this, client));
             return;
         }
