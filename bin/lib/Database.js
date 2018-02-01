@@ -1,17 +1,20 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 // IMPORTS
 // ================================================================================================
-const events = require('events');
-const errors_1 = require('./errors');
-const Pool_1 = require('./Pool');
-const defaults_1 = require('./defaults');
-const util_1 = require('./util');
+const events = require("events");
+const errors_1 = require("./errors");
+const Pool_1 = require("./Pool");
+const defaults_1 = require("./defaults");
+const util_1 = require("./util");
 // MODULE VARIABLES
 // ================================================================================================
 const ERROR_EVENT = 'error';
 // DATABASE CLASS
 // ================================================================================================
 class Database extends events.EventEmitter {
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
     constructor(options, logger, SessionCtr) {
         super();
         if (!options)
@@ -25,12 +28,13 @@ class Database extends events.EventEmitter {
         this.logger = util_1.buildLogger(this.name, logger);
         // initialize connection pool
         const connectionOptions = validateConnectionOptions(options.connection);
-        const poolOptions = validatePoolOptions(options.pool);
-        this.pool = new Pool_1.ConnectionPool(poolOptions, connectionOptions, this.logger);
+        this.pool = new Pool_1.ConnectionPool(options.pool, connectionOptions, this.logger);
         this.pool.on('error', (error) => {
             this.emit(ERROR_EVENT, error);
         });
     }
+    // PUBLIC METHODS
+    // --------------------------------------------------------------------------------------------
     connect(options) {
         options = validateSessionOptions(options);
         const start = process.hrtime();
@@ -68,11 +72,11 @@ class Database extends events.EventEmitter {
     getPoolState() {
         return {
             size: this.pool.totalCount,
-            available: this.pool.idleCount
+            idle: this.pool.idleCount
         };
     }
     getPoolDescription() {
-        return `{ size: ${this.pool.totalCount}, available: ${this.pool.idleCount} }`;
+        return `{ size: ${this.pool.totalCount}, idle: ${this.pool.idleCount} }`;
     }
 }
 exports.Database = Database;
@@ -94,16 +98,6 @@ function validateConnectionOptions(options) {
         throw new TypeError('Connection options are invalid');
     return options;
 }
-function validatePoolOptions(options) {
-    options = Object.assign({}, defaults_1.defaults.pool, options);
-    if (typeof options.maxSize !== 'number')
-        throw new TypeError('Pool options are invalid');
-    if (typeof options.idleTimeout !== 'number')
-        throw new TypeError('Pool options are invalid');
-    if (typeof options.connectionTimeout !== 'number')
-        throw new TypeError('Pool options are invalid');
-    return options;
-}
 function validateSessionOptions(options) {
     options = Object.assign({}, defaults_1.defaults.session, options);
     if (typeof options.startTransaction !== 'boolean')
@@ -111,6 +105,12 @@ function validateSessionOptions(options) {
     if (typeof options.collapseQueries !== 'boolean')
         throw new TypeError('Session options are invalid');
     if (typeof options.logQueryText !== 'boolean')
+        throw new TypeError('Session options are invalid');
+    if (typeof options.timeout !== 'number')
+        throw new TypeError('Session options are invalid');
+    if (options.timeout <= 0)
+        throw new TypeError('Session options are invalid');
+    if (!Number.isInteger(options.timeout))
         throw new TypeError('Session options are invalid');
     return options;
 }

@@ -1,5 +1,6 @@
 "use strict";
-const Session_1 = require('./Session');
+Object.defineProperty(exports, "__esModule", { value: true });
+const Session_1 = require("./Session");
 // DEFAULTS
 // ================================================================================================
 exports.defaults = {
@@ -16,7 +17,8 @@ exports.defaults = {
     session: {
         startTransaction: false,
         collapseQueries: false,
-        logQueryText: false
+        logQueryText: false,
+        timeout: 30000
     },
     pool: {
         maxSize: 20,

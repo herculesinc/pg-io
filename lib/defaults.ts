@@ -30,7 +30,8 @@ export const defaults: Defaults = {
     session: {
         startTransaction: false,
         collapseQueries : false,
-        logQueryText    : false
+        logQueryText    : false,
+        timeout         : 30000
     },
     pool: {
         maxSize          : 20,

@@ -734,20 +734,20 @@ describe('Session lifecycle tests;', function () {
         const database = new Database(settings);
         const poolState = database.getPoolState();
         assert.strictEqual(poolState.size, 0);
-        assert.strictEqual(poolState.available, 0);
+        assert.strictEqual(poolState.idle, 0);
 
         return database.connect().then((session) => {
             return prepareDatabase(session).then(() => {
                 assert.strictEqual(session.isActive, true);
                 const poolState = database.getPoolState();
                 assert.strictEqual(poolState.size, 1);
-                assert.strictEqual(poolState.available, 0);
+                assert.strictEqual(poolState.idle, 0);
 
                 return session.close().then(() => {
                     assert.strictEqual(session.isActive, false);
                     const poolState = database.getPoolState();
                     assert.strictEqual(poolState.size, 1);
-                    assert.strictEqual(poolState.available, 1);
+                    assert.strictEqual(poolState.idle, 1);
                 });
             });
         });
@@ -880,7 +880,7 @@ describe('Error condition tests;', function () {
                         assert.ok(reason instanceof QueryError);
                         assert.strictEqual(session.isActive, false);
                         assert.strictEqual(database.getPoolState().size, 1);
-                        assert.strictEqual(database.getPoolState().available, 1);
+                        assert.strictEqual(database.getPoolState().idle, 1);
                     });
             });
         });
@@ -907,7 +907,7 @@ describe('Error condition tests;', function () {
                             assert.ok(reason instanceof QueryError);
                             assert.strictEqual(session.isActive, false);
                             assert.strictEqual(database.getPoolState().size, 1);
-                            assert.strictEqual(database.getPoolState().available, 1);
+                            assert.strictEqual(database.getPoolState().idle, 1);
                         });
                     });
                 });
@@ -941,7 +941,7 @@ describe('Error condition tests;', function () {
                         assert.ok(reason instanceof ConnectionError);
                         assert.strictEqual(session.isActive, false);
                         assert.strictEqual(database.getPoolState().size, 1);
-                        assert.strictEqual(database.getPoolState().available, 1);
+                        assert.strictEqual(database.getPoolState().idle, 1);
                     });
             });
         });
@@ -1016,7 +1016,7 @@ describe('Error condition tests;', function () {
                             assert.ok(reason instanceof ConnectionError);
                             assert.strictEqual(session.isActive, false);
                             assert.strictEqual(database.getPoolState().size, 1);
-                            assert.strictEqual(database.getPoolState().available, 1);
+                            assert.strictEqual(database.getPoolState().idle, 1);
                         });
                 });
             });
@@ -1040,7 +1040,7 @@ describe('Error condition tests;', function () {
                         assert.ok(reason instanceof QueryError);
                         assert.strictEqual(session.isActive, false);
                         assert.strictEqual(database.getPoolState().size, 1);
-                        assert.strictEqual(database.getPoolState().available, 1);
+                        assert.strictEqual(database.getPoolState().idle, 1);
                     });
             });
         });
@@ -1063,7 +1063,7 @@ describe('Error condition tests;', function () {
                         assert.ok(reason instanceof QueryError);
                         assert.strictEqual(session.isActive, false);
                         assert.strictEqual(database.getPoolState().size, 1);
-                        assert.strictEqual(database.getPoolState().available, 1);
+                        assert.strictEqual(database.getPoolState().idle, 1);
                     });
             });
         });
@@ -1092,7 +1092,7 @@ describe('Error condition tests;', function () {
                         assert.ok(reason instanceof ParseError);
                         assert.strictEqual(session.isActive, false);
                         assert.strictEqual(database.getPoolState().size, 1);
-                        assert.strictEqual(database.getPoolState().available, 1);
+                        assert.strictEqual(database.getPoolState().idle, 1);
                     });
             });
         });

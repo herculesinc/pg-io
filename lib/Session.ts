@@ -16,6 +16,7 @@ export interface SessionOptions {
     startTransaction?   : boolean;
     collapseQueries?    : boolean;
     logQueryText?       : boolean;
+    timeout?            : number;
 }
 
 const enum TransactionState {
@@ -48,12 +49,9 @@ export class Session {
             this.transaction = TransactionState.pending;
         }
 
-        const clientErrorHandler = err => {
-            this.clientError = err;
-            this.client && this.client.removeListener('error', clientErrorHandler)
-        };
-
-        this.client.on('error', clientErrorHandler);
+        this.client.once('error', (error) => {
+            this.clientError = error;
+        });
     }
 
     // PUBLIC ACCESSORS

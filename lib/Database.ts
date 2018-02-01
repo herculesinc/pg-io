@@ -38,8 +38,8 @@ export interface PoolOptions {
 }
 
 export interface PoolState {
-    size            : number;
-    available       : number;
+    size    : number;
+    idle    : number;
 }
 
 // DATABASE CLASS
@@ -52,6 +52,8 @@ export class Database extends events.EventEmitter {
     readonly Session    : typeof Session;
     readonly sOptions   : SessionOptions;
 
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
     constructor(options: DatabaseOptions, logger?: Logger, SessionCtr?: typeof Session) {
         super();
 
@@ -66,14 +68,15 @@ export class Database extends events.EventEmitter {
 
         // initialize connection pool
         const connectionOptions = validateConnectionOptions(options.connection);
-        const poolOptions = validatePoolOptions(options.pool);
-        this.pool = new ConnectionPool(poolOptions, connectionOptions, this.logger);
+        this.pool = new ConnectionPool(options.pool, connectionOptions, this.logger);
 
         this.pool.on('error', (error) => {
             this.emit(ERROR_EVENT, error);
         });
     }
 
+    // PUBLIC METHODS
+    // --------------------------------------------------------------------------------------------
     connect(options?: SessionOptions): Promise<Session> {
         options = validateSessionOptions(options);
 
@@ -114,13 +117,13 @@ export class Database extends events.EventEmitter {
     // --------------------------------------------------------------------------------------------
     getPoolState(): PoolState {
         return {
-            size        : this.pool.totalCount,
-            available   : this.pool.idleCount
+            size    : this.pool.totalCount,
+            idle    : this.pool.idleCount
         };
     }
 
     getPoolDescription(): string {
-        return `{ size: ${this.pool.totalCount}, available: ${this.pool.idleCount} }`;
+        return `{ size: ${this.pool.totalCount}, idle: ${this.pool.idleCount} }`;
     }
 }
 
@@ -139,22 +142,16 @@ function validateConnectionOptions(options: ConnectionSettings): ConnectionSetti
     return options;
 }
 
-function validatePoolOptions(options: PoolOptions): PoolOptions {
-    options = Object.assign({}, defaults.pool, options);
-
-    if (typeof options.maxSize !== 'number') throw new TypeError('Pool options are invalid');
-    if (typeof options.idleTimeout !== 'number') throw new TypeError('Pool options are invalid');
-    if (typeof options.connectionTimeout !== 'number') throw new TypeError('Pool options are invalid');
-
-    return options;
-}
-
 function validateSessionOptions(options: SessionOptions): SessionOptions {
     options = Object.assign({}, defaults.session, options);
 
     if (typeof options.startTransaction !== 'boolean') throw new TypeError('Session options are invalid');
     if (typeof options.collapseQueries !== 'boolean') throw new TypeError('Session options are invalid');
     if (typeof options.logQueryText !== 'boolean') throw new TypeError('Session options are invalid');
+
+    if (typeof options.timeout !== 'number') throw new TypeError('Session options are invalid');
+    if (options.timeout <= 0) throw new TypeError('Session options are invalid');
+    if (!Number.isInteger(options.timeout)) throw new TypeError('Session options are invalid');
 
     return options;
 }

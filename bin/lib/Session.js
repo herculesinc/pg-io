@@ -1,7 +1,8 @@
 "use strict";
-const Query_1 = require('./Query');
-const Collector_1 = require('./Collector');
-const errors_1 = require('./errors');
+Object.defineProperty(exports, "__esModule", { value: true });
+const Query_1 = require("./Query");
+const Collector_1 = require("./Collector");
+const errors_1 = require("./errors");
 // SESSION CLASS DEFINITION
 // ================================================================================================
 class Session {
@@ -19,11 +20,9 @@ class Session {
             this.logger.debug(`Starting database transaction in lazy mode`);
             this.transaction = 1 /* pending */;
         }
-        const clientErrorHandler = err => {
-            this.clientError = err;
-            this.client && this.client.removeListener('error', clientErrorHandler);
-        };
-        this.client.on('error', clientErrorHandler);
+        this.client.once('error', (error) => {
+            this.clientError = error;
+        });
     }
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------

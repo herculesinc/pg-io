@@ -2,6 +2,7 @@
 // ================================================================================================
 import * as events from 'events';
 import { ConnectionConfig, Client } from 'pg';
+import { defaults } from './defaults';
 import { ConnectionError } from './errors';
 import { DbLogger } from './util';
 
@@ -47,7 +48,7 @@ export class ConnectionPool extends events.EventEmitter {
         super();
 
         this.state = PoolState.active;
-        this.pOptions = poolOptions;
+        this.pOptions = validatePoolOptions(poolOptions);
         this.cOptions = connectionOptions;
 
         this.logger = logger;
@@ -84,12 +85,16 @@ export class ConnectionPool extends events.EventEmitter {
             return;
         }
 
+        // if the pool is empty, mark the pool as closed and return
+        if (!this.totalCount) {
+            this.state = PoolState.closed;
+            callback();
+            return;
+        }
+
+        // otherwise, prepare for closing clients
         this.state = PoolState.closing;
         this.shutdownCallback = callback;
-
-        if (!this.totalCount) {
-            this.shutdownCallback();
-        }
 
         // clear pending requests
         for (let request of this.requests) {
@@ -123,7 +128,7 @@ export class ConnectionPool extends events.EventEmitter {
         }
 
         // if there are no idle clients available, set a timeout for fulfilling the request
-        request.setTimeout(this.pOptions.connectionTimeout, this.removeClient.bind(this));
+        request.setTimeout(this.pOptions.connectionTimeout);
 
         // if the pool is exhausted, queue the request and return
         if (this.clients.size >= this.pOptions.maxSize) {
@@ -136,7 +141,6 @@ export class ConnectionPool extends events.EventEmitter {
 
         const client = new Client(this.cOptions);
         this.clients.add(client);
-        request.setClient(client);
         client.connect((error) => {
             this.logger.trace('create connection', start, !error);
             if (error) {
@@ -203,9 +207,11 @@ export class ConnectionPool extends events.EventEmitter {
             this.emit(CLOSED_EVENT, client);
         });
 
+        // check if the pool should be shut down
         if (this.state === PoolState.closing && this.clients.size === 0) {
             this.state = PoolState.closed;
             this.shutdownCallback();
+            this.shutdownCallback = undefined;
         }
     }
 
@@ -232,7 +238,6 @@ export class ConnectionPool extends events.EventEmitter {
             // otherwise, add the client to idle set
             this.addToIdle(client);
         }
-
     }
 }
 
@@ -240,7 +245,6 @@ export class ConnectionPool extends events.EventEmitter {
 // ================================================================================================
 class ConnectionRequest {
 
-    private client?     : Client;
     private callback?   : ConnectionCallback;
     private timeoutId?  : NodeJS.Timer;
 
@@ -252,11 +256,7 @@ class ConnectionRequest {
         return (this.callback !== undefined);
     }
 
-    setClient(client: Client): void {
-        this.client = client;
-    }
-
-    setTimeout(ms: number, errorHandler: (client: Client) => void) {
+    setTimeout(ms: number) {
         if (this.timeoutId) {
             throw new Error('Cannot set connection request timeout: the timeout is already set');
         }
@@ -265,7 +265,6 @@ class ConnectionRequest {
             if (this.isPending) {
                 const error = new ConnectionError('Connection request has timed out');
                 process.nextTick(this.callback, error);
-                this.client && errorHandler(this.client);
                 this.callback = undefined;
             }
         }, ms);
@@ -301,4 +300,24 @@ class ConnectionRequest {
             this.callback = undefined;
         }
     }
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+function validatePoolOptions(options: PoolOptions): PoolOptions {
+    options = Object.assign({}, defaults.pool, options);
+
+    if (typeof options.maxSize !== 'number') throw new TypeError('Pool options are invalid');
+    if (options.maxSize <= 0) throw new TypeError('Pool options are invalid');
+    if (!Number.isInteger(options.maxSize)) throw new TypeError('Pool options are invalid');
+
+    if (typeof options.idleTimeout !== 'number') throw new TypeError('Pool options are invalid');
+    if (options.idleTimeout <= 0) throw new TypeError('Pool options are invalid');
+    if (!Number.isInteger(options.idleTimeout)) throw new TypeError('Pool options are invalid');
+
+    if (typeof options.connectionTimeout !== 'number') throw new TypeError('Pool options are invalid');
+    if (options.connectionTimeout <= 0) throw new TypeError('Pool options are invalid');
+    if (!Number.isInteger(options.connectionTimeout)) throw new TypeError('Pool options are invalid');
+
+    return options;
 }

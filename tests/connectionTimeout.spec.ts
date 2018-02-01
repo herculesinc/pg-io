@@ -5,6 +5,7 @@ import {ConnectionPool, PoolOptions} from '../lib/Pool';
 import {ConnectionError} from '../lib/errors';
 import {settings} from './settings';
 import {buildLogger} from '../lib/util';
+import {MockLogger} from './mocks/Logger';
 
 describe('Pool connection timeout;', () => {
     before(done => {
@@ -16,6 +17,7 @@ describe('Pool connection timeout;', () => {
         });
 
         this.createNewPool = (poolOptions: PoolOptions, defaultPort: boolean = true): ConnectionPool => {
+            //const logger = buildLogger('test', new MockLogger());
             const logger = buildLogger('test');
             let connectionSettings = settings.connection;
 
@@ -33,41 +35,51 @@ describe('Pool connection timeout;', () => {
     });
 
     it('should callback with an error if timeout is passed', done => {
-        const pool = this.createNewPool({connectionTimeout: 10}, false);
+        const pool = this.createNewPool({connectionTimeout: 10}, true);
 
         pool.acquire((err, client) => {
             expect(err).to.be.an.instanceof(ConnectionError);
             expect(err.message).to.contain('Connection request has timed out');
             expect(pool.idleCount).to.equal(0);
-            expect(pool.totalCount).to.equal(0);
+            expect(pool.totalCount).to.equal(1);
             expect(client).to.be.undefined;
 
-            pool.shutdown(done);
+            setTimeout(() => {
+                expect(pool.idleCount).to.equal(1);
+                pool.shutdown(done);
+            }, 1000);
         });
     });
 
     it('should handle multiple timeouts', async done => {
-        const pool = this.createNewPool({connectionTimeout: 10}, false);
+        const pool = this.createNewPool({connectionTimeout: 10}, true);
         const iterations = 15;
         const errors = [];
 
         try {
+            const promises = [];
             for (let i = 0; i < iterations; i++) {
-                await new Promise(resolve => {
+                promises.push(new Promise(resolve => {
                     pool.acquire(err => {
                         expect(err).to.be.an.instanceof(ConnectionError);
                         expect(err.message).to.contain('Connection request has timed out');
                         errors.push(err);
                         resolve();
                     });
-                });
+                }));
             }
+
+            await Promise.all(promises);
 
             expect(errors).to.have.length(iterations);
             expect(pool.idleCount).to.equal(0);
-            expect(pool.totalCount).to.equal(0);
+            expect(pool.totalCount).to.equal(15);
 
-            done();
+            setTimeout(() => {
+                expect(pool.idleCount).to.equal(15);
+                pool.shutdown(done);
+            }, 1000);
+
         } catch (e) {
             done(e);
         }

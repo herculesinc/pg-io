@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 class PgError extends Error {
     constructor(messageOrCause, cause) {
         if (typeof messageOrCause === 'string') {

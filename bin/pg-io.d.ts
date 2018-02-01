@@ -23,7 +23,6 @@ declare module "pg-io" {
     }
 
     export interface PoolOptions {
-        log?               : (data: any) => void;
         maxSize?           : number;
         idleTimeout?       : number;
         connectionTimeout? : number;
@@ -47,11 +46,12 @@ declare module "pg-io" {
         collapseQueries?    : boolean;
         startTransaction?   : boolean;
         logQueryText?       : boolean;
+        timeout?            : number;
     }
 
     export interface PoolState {
-        size        : number;
-        available   : number;
+        size    : number;
+        idle    : number;
     }
 
     export class Database extends events.EventEmitter {
