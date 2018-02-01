@@ -1,8 +1,7 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const Query_1 = require("./Query");
-const Collector_1 = require("./Collector");
-const errors_1 = require("./errors");
+const Query_1 = require('./Query');
+const Collector_1 = require('./Collector');
+const errors_1 = require('./errors');
 // SESSION CLASS DEFINITION
 // ================================================================================================
 class Session {

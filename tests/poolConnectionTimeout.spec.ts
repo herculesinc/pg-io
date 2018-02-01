@@ -1,41 +1,12 @@
-import * as net from 'net';
 import {expect} from 'chai';
 
-import {ConnectionPool, PoolOptions} from '../lib/Pool';
 import {ConnectionError} from '../lib/errors';
-import {settings} from './settings';
-import {buildLogger} from '../lib/util';
-import {MockLogger} from './mocks/Logger';
+import {createNewPool} from './helpers';
 
 describe('Pool connection timeout;', () => {
-    before(done => {
-        this.server = net.createServer();
-
-        this.server.listen(() => {
-            this.port = this.server.address().port;
-            done();
-        });
-
-        this.createNewPool = (poolOptions: PoolOptions, defaultPort: boolean = true): ConnectionPool => {
-            //const logger = buildLogger('test', new MockLogger());
-            const logger = buildLogger('test');
-            let connectionSettings = settings.connection;
-
-            if (!defaultPort) {
-                connectionSettings = Object.assign({}, connectionSettings, {port: this.port});
-            }
-
-            return new ConnectionPool(poolOptions, connectionSettings, logger);
-        };
-    });
-
-    after(done => {
-        this.server.close();
-        done();
-    });
 
     it('should callback with an error if timeout is passed', done => {
-        const pool = this.createNewPool({connectionTimeout: 10}, true);
+        const pool = createNewPool({connectionTimeout: 2});
 
         pool.acquire((err, client) => {
             expect(err).to.be.an.instanceof(ConnectionError);
@@ -44,16 +15,13 @@ describe('Pool connection timeout;', () => {
             expect(pool.totalCount).to.equal(1);
             expect(client).to.be.undefined;
 
-            setTimeout(() => {
-                expect(pool.idleCount).to.equal(1);
-                pool.shutdown(done);
-            }, 1000);
+            pool.shutdown(done);
         });
     });
 
     it('should handle multiple timeouts', async done => {
-        const pool = this.createNewPool({connectionTimeout: 10}, true);
         const iterations = 15;
+        const pool = createNewPool({connectionTimeout: 2, maxSize: iterations});
         const errors = [];
 
         try {
@@ -75,19 +43,14 @@ describe('Pool connection timeout;', () => {
             expect(pool.idleCount).to.equal(0);
             expect(pool.totalCount).to.equal(15);
 
-            setTimeout(() => {
-                expect(pool.idleCount).to.equal(15);
-                pool.shutdown(done);
-            }, 1000);
-
+            pool.shutdown(done);
         } catch (e) {
             done(e);
         }
-
     });
 
     it('should timeout on checkout of used connection', done => {
-        const pool = this.createNewPool({connectionTimeout: 100, maxSize: 1});
+        const pool = createNewPool({connectionTimeout: 100, maxSize: 1});
 
         pool.acquire((err, client) => {
             expect(err).to.be.undefined;
@@ -100,14 +63,14 @@ describe('Pool connection timeout;', () => {
                 expect(client).to.be.undefined;
                 expect(pool.totalCount).to.equal(1);
 
-                pool.clients.entries().next().value[0].release();
+                (pool as any).clients.entries().next().value[0].release();
                 pool.shutdown(done);
             });
         });
     });
 
     it('should timeout on query if all clients are busy', done => {
-        const pool = this.createNewPool({connectionTimeout: 100, maxSize: 1});
+        const pool = createNewPool({connectionTimeout: 100, maxSize: 1});
 
         pool.acquire((err, client) => {
             expect(err).to.be.undefined;
@@ -128,7 +91,7 @@ describe('Pool connection timeout;', () => {
     });
 
     it('should recover from timeout errors', done => {
-        const pool = this.createNewPool({connectionTimeout: 100, maxSize: 1});
+        const pool = createNewPool({connectionTimeout: 100, maxSize: 1});
 
         pool.acquire((err, client) => {
             expect(err).to.be.undefined;

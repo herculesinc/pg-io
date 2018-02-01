@@ -1,15 +1,7 @@
 import {expect} from 'chai';
 
 import {Client, QueryResult} from 'pg';
-import {ConnectionPool, PoolOptions} from '../lib/Pool';
-import {settings} from './settings';
-import {buildLogger} from '../lib/util';
-
-const createNewPool = (options?: PoolOptions): ConnectionPool => {
-    const poolSettings = Object.assign({}, settings.pool, options || {});
-
-    return new ConnectionPool(poolSettings, settings.connection, buildLogger('test'));
-};
+import {createNewPool} from './helpers';
 
 describe('Pool error handling;', () => {
     it('Should complete these queries without dying', done => {

@@ -1,8 +1,7 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 // IMPORTS
 // ================================================================================================
-const errors_1 = require("./errors");
+const errors_1 = require('./errors');
 // MODULE VARIABLES
 // ================================================================================================
 const PARAM_PATTERN = /{{([a-z0-9\$_]+)}}/gi;

@@ -1,13 +1,7 @@
 import {expect} from 'chai';
 
 import {Client} from 'pg';
-import {ConnectionPool} from '../lib/Pool';
-import {buildLogger} from '../lib/util';
-import {settings} from './settings';
-
-const createNewPool = (): ConnectionPool => {
-    return new ConnectionPool(settings.pool, settings.connection, buildLogger('test'));
-};
+import {createNewPool} from './helpers';
 
 describe('Pool ending;', () => {
     it('ends without being used', (done) => {

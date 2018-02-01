@@ -1,12 +1,11 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 // IMPORTS
 // ================================================================================================
-const events = require("events");
-const errors_1 = require("./errors");
-const Pool_1 = require("./Pool");
-const defaults_1 = require("./defaults");
-const util_1 = require("./util");
+const events = require('events');
+const errors_1 = require('./errors');
+const Pool_1 = require('./Pool');
+const defaults_1 = require('./defaults');
+const util_1 = require('./util');
 // MODULE VARIABLES
 // ================================================================================================
 const ERROR_EVENT = 'error';

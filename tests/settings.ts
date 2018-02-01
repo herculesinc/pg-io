@@ -8,7 +8,7 @@ export const settings = {
     },
     pool: {
         maxSize          : 10,
-        idleTimeout      : 10000,
+        idleTimeout      : 2000,
         connectionTimeout: 1000
     }
 };
