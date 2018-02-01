@@ -1,12 +1,7 @@
 import {expect} from 'chai';
 
-import {ConnectionPool, ERROR_EVENT, CREATED_EVENT, CLOSED_EVENT} from '../lib/Pool';
-import {settings} from './settings';
-import {buildLogger} from '../lib/util';
-
-const createNewPool = (): ConnectionPool => {
-    return new ConnectionPool(settings.pool, settings.connection, buildLogger('test'));
-};
+import {ERROR_EVENT, CREATED_EVENT, CLOSED_EVENT} from '../lib/Pool';
+import {createNewPool} from './helpers';
 
 describe('Pool Events;', () => {
     it('emits acquire before callback', done => {
