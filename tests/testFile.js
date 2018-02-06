@@ -81,9 +81,8 @@ function sendResult(res, isError) {
 function showPgPoolData() {
     setTimeout(() => {
         console.log('PgPool info');
-        console.log(`All clients     - [${database.pgPool._clients.map(c => c.processID).join(',')}]`);
-        console.log(`Idle clients    - [${database.pgPool._idle.map(c => c.processID).join(',')}]`);
-        console.log(`Waiting clients - [${database.pgPool._pendingQueue.map(c => c.processID).join(',')}]`);
+        console.log(`All clients     - [${[ ...database.pool.clients ].map(c => c.processID).join(',')}]`);
+        console.log(`Idle clients    - [${[ ...database.pool.idle.keys() ].map(c => c.processID).join(',')}]`);
         console.log('--------------------');
     }, 1000);
 }

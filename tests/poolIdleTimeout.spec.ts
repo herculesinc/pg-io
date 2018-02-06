@@ -2,9 +2,19 @@ import {expect} from 'chai';
 
 import {CLOSED_EVENT} from '../lib/Pool';
 import {ConnectionError} from '../lib/errors';
-import {createNewPool, createClient, wait} from './helpers';
+import {createNewPool, pgProxyServer, createClient, wait, PROXY_SERVER_PORT} from './helpers';
+
+let server;
 
 describe('Pool idle timeout;', () => {
+    before(done => {
+        server = pgProxyServer(250, done);
+    });
+
+    after(done => {
+        server.close(done);
+    });
+
     it('should timeout and remove the client', done => {
         const pool = createNewPool({idleTimeout: 10});
 
@@ -126,8 +136,8 @@ describe('Pool idle timeout;', () => {
     });
 
     it('should removes client after timeout error', async done => {
-        const idleTimeout = 50;
-        const pool = createNewPool({connectionTimeout: 2, idleTimeout});
+        const idleTimeout = 150;
+        const pool = createNewPool({connectionTimeout: 150, idleTimeout}, {port: PROXY_SERVER_PORT});
         let client, timeoutError;
 
         try {
@@ -144,7 +154,7 @@ describe('Pool idle timeout;', () => {
             expect(pool.idleCount).to.equal(0);
             expect(pool.totalCount).to.equal(1);
 
-            await wait(5);
+            await wait(200);
 
             expect(pool.idleCount).to.equal(1);
             expect(pool.totalCount).to.equal(1);
@@ -156,14 +166,14 @@ describe('Pool idle timeout;', () => {
 
             pool.shutdown(done);
         } catch (err) {
-            done(err);
+            pool.shutdown(() => done(err));
         }
     });
 
     it('should removes client after multiple timeout errors', async done => {
         const idleTimeout = 50;
         const iterations = 15;
-        const pool = createNewPool({connectionTimeout: 2, idleTimeout, maxSize: iterations});
+        const pool = createNewPool({connectionTimeout: 150, idleTimeout, maxSize: iterations}, {port: PROXY_SERVER_PORT});
         const errors = [];
 
         try {
@@ -187,7 +197,7 @@ describe('Pool idle timeout;', () => {
             expect(pool.idleCount).to.equal(0);
             expect(pool.totalCount).to.equal(iterations);
 
-            await wait(idleTimeout/2);
+            await wait(200);
 
             expect(pool.idleCount).to.equal(iterations);
             expect(pool.totalCount).to.equal(iterations);
@@ -199,7 +209,7 @@ describe('Pool idle timeout;', () => {
 
             pool.shutdown(done);
         } catch (err) {
-            done(err);
+            pool.shutdown(() => done(err));
         }
     });
 });
