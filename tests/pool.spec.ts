@@ -34,7 +34,7 @@ describe('Pool;', () => {
     });
 
     it('does not pass client to error callback', done => {
-        const pool = createNewPool({}, {port: 53922});
+        const pool = createNewPool({}, {port: 8080});
 
         pool.acquire((err, client) => {
             expect(client).to.be.undefined;
