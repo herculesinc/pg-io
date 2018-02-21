@@ -1,10 +1,9 @@
 import * as net from 'net';
 import {Client, ConnectionConfig} from 'pg';
 import {buildLogger, Logger} from '../lib/util';
-import {CLOSED_EVENT, ConnectionPool, PoolOptions} from '../lib/Pool';
+import {ConnectionPool, PoolOptions} from '../lib/Pool';
 import {settings} from './settings';
 
-export const PROXY_SERVER_PORT   = 3000;
 export const FAKE_PG_SERVER_PORT = 3001;
 
 export function createNewPool(poolOptions: PoolOptions = {}, connectionOptions: ConnectionConfig = {}, logger?: Logger): ConnectionPool {
@@ -54,41 +53,6 @@ export function removeAllClientAndShutdownPool(pool: ConnectionPool): Promise<vo
     }
 
     return shutdownPool();
-}
-
-export function pgProxyServer(timeout: number, cb): net.Server {
-    const server = net.createServer(proxySocket => {
-        const pgSocket = new net.Socket();
-
-        pgSocket.connect(settings.connection.port, settings.connection.host);
-
-        proxySocket.on('data', data => {
-            setTimeout(() => {
-                const flushed = pgSocket.write(data);
-
-                !flushed && proxySocket.pause();
-            }, timeout);
-        });
-
-        pgSocket.on('data', data => {
-            const flushed = proxySocket.write(data);
-
-            !flushed && pgSocket.pause();
-        });
-
-        proxySocket.on('drain', () => pgSocket.resume());
-
-        pgSocket.on('drain', () => proxySocket.resume());
-
-        proxySocket.on('close', () => pgSocket.end());
-
-        pgSocket.on('close', () => proxySocket.end());
-
-    });
-
-    server.listen(PROXY_SERVER_PORT, cb);
-
-    return server;
 }
 
 export function fakePgServer(cb: Function): net.Server {

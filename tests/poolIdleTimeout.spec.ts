@@ -2,19 +2,9 @@ import {expect} from 'chai';
 
 import {CLOSED_EVENT} from '../lib/Pool';
 import {ConnectionError} from '../lib/errors';
-import {createNewPool, pgProxyServer, createClient, wait, PROXY_SERVER_PORT} from './helpers';
-
-let server;
+import {createNewPool, createClient, wait} from './helpers';
 
 describe('Pool idle timeout;', () => {
-    before(done => {
-        server = pgProxyServer(250, done);
-    });
-
-    after(done => {
-        server.close(done);
-    });
-
     it('should timeout and remove the client', done => {
         const pool = createNewPool({idleTimeout: 10});
 
@@ -107,8 +97,8 @@ describe('Pool idle timeout;', () => {
     });
 
     it('should removes client after timeout error', async done => {
-        const idleTimeout = 150;
-        const pool = createNewPool({connectionTimeout: 150, idleTimeout}, {port: PROXY_SERVER_PORT});
+        const idleTimeout = 400;
+        const pool = createNewPool({connectionTimeout: 1, idleTimeout});
         let client, timeoutError;
 
         try {
@@ -142,9 +132,9 @@ describe('Pool idle timeout;', () => {
     });
 
     it('should removes client after multiple timeout errors', async done => {
-        const idleTimeout = 1000;
+        const idleTimeout = 400;
         const iterations = 15;
-        const pool = createNewPool({connectionTimeout: 150, idleTimeout, maxSize: iterations}, {port: PROXY_SERVER_PORT});
+        const pool = createNewPool({connectionTimeout: 1, idleTimeout, maxSize: iterations});
         const errors = [];
 
         try {
