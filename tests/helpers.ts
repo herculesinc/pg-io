@@ -1,10 +1,11 @@
 import * as net from 'net';
 import {Client, ConnectionConfig} from 'pg';
 import {buildLogger, Logger} from '../lib/util';
-import {ConnectionPool, PoolOptions} from '../lib/Pool';
+import {CLOSED_EVENT, ConnectionPool, PoolOptions} from '../lib/Pool';
 import {settings} from './settings';
 
-export const PROXY_SERVER_PORT = 3000;
+export const PROXY_SERVER_PORT   = 3000;
+export const FAKE_PG_SERVER_PORT = 3001;
 
 export function createNewPool(poolOptions: PoolOptions = {}, connectionOptions: ConnectionConfig = {}, logger?: Logger): ConnectionPool {
     const poolSettings = Object.assign({}, settings.pool, poolOptions);
@@ -20,6 +21,39 @@ export function wait(time) {
 
 export function createClient(pool: ConnectionPool): Promise<Client> {
     return new Promise((resolve, reject) => pool.acquire((err, client) => err ? reject(err) : resolve(client)));
+}
+
+export function removeAllClientAndShutdownPool(pool: ConnectionPool): Promise<void> {
+    const removeClient = (client: Client) => {
+        const idleTimeout = (pool as any).idle.get(client);
+
+        if (idleTimeout) {
+            clearTimeout(idleTimeout);
+            (pool as any).idle.delete(client);
+        }
+
+        (pool as any).clients.delete(client);
+
+        if ((client as any).connection) {
+            (client as any).connection.stream.destroy();
+        } else {
+            client.end();
+        }
+    };
+
+    const shutdownPool = (): Promise<void> => {
+        return new Promise((resolve, reject) => {
+            pool.shutdown(error => {
+                error ? reject(error) : resolve();
+            });
+        });
+    };
+
+    for (let client of (pool as any).clients.keys()) {
+        removeClient(client);
+    }
+
+    return shutdownPool();
 }
 
 export function pgProxyServer(timeout: number, cb): net.Server {
@@ -53,6 +87,14 @@ export function pgProxyServer(timeout: number, cb): net.Server {
     });
 
     server.listen(PROXY_SERVER_PORT, cb);
+
+    return server;
+}
+
+export function fakePgServer(cb: Function): net.Server {
+    const server = net.createServer();
+
+    server.listen(FAKE_PG_SERVER_PORT, cb);
 
     return server;
 }
