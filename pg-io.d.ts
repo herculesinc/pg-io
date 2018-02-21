@@ -7,19 +7,19 @@ declare module "pg-io" {
     // GLOBAL
     // --------------------------------------------------------------------------------------------
     export interface DatabaseOptions {
-        name?           : string;
-        pool?           : PoolOptions;
-        session?        : SessionOptions;
-        connection      : ConnectionSettings;
+        name?               : string;
+        pool?               : PoolOptions;
+        session?            : SessionOptions;
+        connection          : ConnectionSettings;
     }
 
     export interface ConnectionSettings {
-        host            : string;
-        port?           : number;
-        ssl?            : boolean;
-        user            : string;
-        password        : string;
-        database        : string;
+        host                : string;
+        port?               : number;
+        ssl?                : boolean;
+        user                : string;
+        password            : string;
+        database            : string;
     }
 
     export interface PoolOptions {
@@ -29,11 +29,11 @@ declare module "pg-io" {
     }
 
     export const defaults: {
-        name            : string;
-        SessionCtr      : typeof Session;
-        connection      : ConnectionSettings;
-        session         : SessionOptions;
-        pool            : PoolOptions;
+        name                : string;
+        SessionCtr          : typeof Session;
+        connection          : ConnectionSettings;
+        session             : SessionOptions;
+        pool                : PoolOptions;
     };
 
     export const util: {
