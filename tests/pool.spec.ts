@@ -1,6 +1,6 @@
 import {expect} from 'chai';
 
-import {ERROR_EVENT} from '../lib/Pool';
+import {ERROR_EVENT, CLOSED_EVENT} from '../lib/Pool';
 import {createNewPool} from './helpers';
 import {settings} from './settings';
 
@@ -70,10 +70,15 @@ describe('Pool;', () => {
             expect(client).to.not.be.undefined;
             expect(client).to.equal(testClient);
             expect((client as any).testString).to.equal(testString);
+        });
 
-            (client as any).connection.stream.on('end', () => {
-                pool.shutdown(done);
-            });
+        pool.on(CLOSED_EVENT, (client) => {
+            expect(client).to.equal(testClient);
+            expect((client as any).testString).to.equal(testString);
+
+            expect(pool.totalCount).to.equal(0);
+
+            pool.shutdown(done);
         })
     });
 

@@ -97,7 +97,7 @@ describe('Pool idle timeout;', () => {
     });
 
     it('should removes client after timeout error', async done => {
-        const idleTimeout = 400;
+        const idleTimeout = 2000;
         const pool = createNewPool({connectionTimeout: 1, idleTimeout});
         let client, timeoutError;
 
@@ -131,9 +131,11 @@ describe('Pool idle timeout;', () => {
         }
     });
 
-    it('should removes client after multiple timeout errors', async done => {
-        const idleTimeout = 400;
-        const iterations = 15;
+    it('should removes client after multiple timeout errors', async function (done) {
+        this.timeout(15000);
+
+        const idleTimeout = 4000;
+        const iterations = 10;
         const pool = createNewPool({connectionTimeout: 1, idleTimeout, maxSize: iterations});
         const errors = [];
 
@@ -158,7 +160,7 @@ describe('Pool idle timeout;', () => {
             expect(pool.idleCount).to.equal(0);
             expect(pool.totalCount).to.equal(iterations);
 
-            await wait(250);
+            await wait(idleTimeout / 4);
 
             expect(pool.idleCount).to.equal(iterations);
             expect(pool.totalCount).to.equal(iterations);

@@ -1,9 +1,10 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 // IMPORTS
 // ================================================================================================
-const events = require('events');
-const pg_1 = require('pg');
-const errors_1 = require('./errors');
+const events = require("events");
+const pg_1 = require("pg");
+const errors_1 = require("./errors");
 // CLASS DEFINITION
 // ================================================================================================
 class ConnectionPool extends events.EventEmitter {

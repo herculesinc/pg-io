@@ -1,7 +1,7 @@
 ﻿// IMPORTS
 // ================================================================================================
-import { Session } from './../lib/Session';
-import { Query, SingleResultQuery, ListResultQuery, ResultHandler } from './../lib/Query';
+import { Session } from '../lib/Session';
+import { Query, SingleResultQuery, ListResultQuery, ResultHandler } from '../lib/Query';
 
 // INTERFACES
 // ================================================================================================
@@ -15,36 +15,6 @@ export interface User {
 
 // QUERIES
 // ================================================================================================
-class AbstractQuery implements Query {
-    text: string;
-    get name(): string { return (<any> this).constructor.name; }
-}
-
-class qInsertUser extends AbstractQuery {
-    constructor(user: User) {
-        super();
-        this.text = `INSERT INTO tmp_users (id, username, created_on, updated_on)
-            SELECT ${user.id}, '${user.username}', '${user.createdOn.toISOString() }', '${user.updatedOn.toISOString() }';`;
-    }
-}
-
-class qDeleteUser extends AbstractQuery {
-    constructor(user: User) {
-        super();
-        this.text = `DELETE FROM tmp_users WHERE id = ${user.id};`;
-    }
-}
-
-class qUpdateUser extends AbstractQuery {
-    constructor(user: User) {
-        super();
-        this.text = `UPDATE tmp_users SET
-                        username = '${user.username}',
-                        updated_on = '${user.updatedOn.toISOString() }'
-                        WHERE id = ${user.id};`;
-    }
-}
-
 export class qFetchUserById implements SingleResultQuery<User> {
     text    : string;
     mask    : 'single' = 'single';

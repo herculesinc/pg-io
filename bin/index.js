@@ -1,7 +1,8 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 // IMPORTS
 // ================================================================================================
-const util_1 = require('./lib/util');
+const util_1 = require("./lib/util");
 // GLOBALS
 // ================================================================================================
 exports.util = {
@@ -9,13 +10,13 @@ exports.util = {
 };
 // RE-EXPORTS
 // ================================================================================================
-var Database_1 = require('./lib/Database');
+var Database_1 = require("./lib/Database");
 exports.Database = Database_1.Database;
-var defaults_1 = require('./lib/defaults');
+var defaults_1 = require("./lib/defaults");
 exports.defaults = defaults_1.defaults;
-var Session_1 = require('./lib/Session');
+var Session_1 = require("./lib/Session");
 exports.Session = Session_1.Session;
-var errors_1 = require('./lib/errors');
+var errors_1 = require("./lib/errors");
 exports.PgError = errors_1.PgError;
 exports.ConnectionError = errors_1.ConnectionError;
 exports.TransactionError = errors_1.TransactionError;
