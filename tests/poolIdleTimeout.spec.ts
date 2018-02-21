@@ -2,19 +2,9 @@ import {expect} from 'chai';
 
 import {CLOSED_EVENT} from '../lib/Pool';
 import {ConnectionError} from '../lib/errors';
-import {createNewPool, pgProxyServer, createClient, wait, PROXY_SERVER_PORT} from './helpers';
-
-let server;
+import {createNewPool, createClient, wait} from './helpers';
 
 describe('Pool idle timeout;', () => {
-    before(done => {
-        server = pgProxyServer(250, done);
-    });
-
-    after(done => {
-        server.close(done);
-    });
-
     it('should timeout and remove the client', done => {
         const pool = createNewPool({idleTimeout: 10});
 
@@ -36,35 +26,6 @@ describe('Pool idle timeout;', () => {
                 pool.shutdown(done);
             });
         });
-    });
-
-    it('times out and removes clients when others are also removed', async done => {
-        const pool = createNewPool({idleTimeout: 10});
-
-        try {
-            const clientA = await createClient(pool);
-            const clientB = await createClient(pool);
-
-            clientA.release();
-            clientB.release(new Error());
-
-            const removal = new Promise(resolve => {
-                pool.on(CLOSED_EVENT, () => {
-                    expect(pool.idleCount).to.equal(0);
-                    expect(pool.totalCount).to.equal(0);
-                    resolve();
-                })
-            });
-
-            const timeout = wait(100).then(() =>
-                Promise.reject(new Error('Idle timeout failed to occur')));
-
-            await Promise.race([removal, timeout]);
-
-            pool.shutdown(done);
-        } catch (err) {
-            done(err);
-        }
     });
 
     it('can remove idle clients and recreate them', async done => {
@@ -136,8 +97,8 @@ describe('Pool idle timeout;', () => {
     });
 
     it('should removes client after timeout error', async done => {
-        const idleTimeout = 150;
-        const pool = createNewPool({connectionTimeout: 150, idleTimeout}, {port: PROXY_SERVER_PORT});
+        const idleTimeout = 2000;
+        const pool = createNewPool({connectionTimeout: 1, idleTimeout});
         let client, timeoutError;
 
         try {
@@ -170,10 +131,12 @@ describe('Pool idle timeout;', () => {
         }
     });
 
-    it('should removes client after multiple timeout errors', async done => {
-        const idleTimeout = 50;
-        const iterations = 15;
-        const pool = createNewPool({connectionTimeout: 150, idleTimeout, maxSize: iterations}, {port: PROXY_SERVER_PORT});
+    it('should removes client after multiple timeout errors', async function (done) {
+        this.timeout(15000);
+
+        const idleTimeout = 4000;
+        const iterations = 10;
+        const pool = createNewPool({connectionTimeout: 1, idleTimeout, maxSize: iterations});
         const errors = [];
 
         try {
@@ -197,7 +160,7 @@ describe('Pool idle timeout;', () => {
             expect(pool.idleCount).to.equal(0);
             expect(pool.totalCount).to.equal(iterations);
 
-            await wait(200);
+            await wait(idleTimeout / 4);
 
             expect(pool.idleCount).to.equal(iterations);
             expect(pool.totalCount).to.equal(iterations);

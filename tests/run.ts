@@ -1,9 +1,7 @@
 // IMPORTS
 // ================================================================================================
-import * as assert from 'assert';
 import { Database } from './../index';
-import { ListResultQuery, SingleResultQuery } from './../lib/Query';
-import { User, prepareDatabase, qFetchUserById, qFetchRawUserById, qFetchUsersByIdList } from './setup';
+import { prepareDatabase, qFetchRawUserById } from './setup';
 import { MockLogger } from './mocks/Logger';
 
 // OPTIONS
@@ -24,7 +22,7 @@ const dbOptions = {
 
 const sessionOpts = {
     logQueryText: true
-}
+};
 
 // SETUP
 // ================================================================================================
@@ -46,4 +44,4 @@ async function runTests() {
     await session.close();
 }
 
-//runTests();
+runTests();

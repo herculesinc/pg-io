@@ -1,18 +1,8 @@
 import {expect} from 'chai';
 
-import {createNewPool, createClient, wait, pgProxyServer, PROXY_SERVER_PORT} from './helpers';
-
-let server;
+import {createNewPool, createClient, wait} from './helpers';
 
 describe('Pool size of 1;', () => {
-    before(done => {
-        server = pgProxyServer(250, done);
-    });
-
-    after(done => {
-        server.close(done);
-    });
-
     it('can create a single client and use it once', async done => {
         const pool = createNewPool({maxSize: 1});
 
@@ -36,7 +26,7 @@ describe('Pool size of 1;', () => {
     });
 
     it('can create a single client and use it multiple times', async done => {
-        const pool = createNewPool({maxSize: 1, connectionTimeout: 300}, {port: PROXY_SERVER_PORT});
+        const pool = createNewPool({maxSize: 1, connectionTimeout: 400});
         let clientA, clientB;
 
         try {

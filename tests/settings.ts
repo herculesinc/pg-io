@@ -9,6 +9,6 @@ export const settings = {
     pool: {
         maxSize          : 10,
         idleTimeout      : 1000,
-        connectionTimeout: 1000
+        connectionTimeout: 3000
     }
 };

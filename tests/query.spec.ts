@@ -66,7 +66,7 @@ describe('Query parameterization tests;', function () {
         assert.strictEqual(dbQuery.values, undefined);
     });
 
-    it('Parametrizing arrays as objects should work correctly', () => {
+    it('Parameterizing arrays as objects should work correctly', () => {
         const query: Query = {
             text: 'UPDATE users SET tags={{tags}} WHERE id={{id}};',
             params: {
@@ -133,7 +133,7 @@ describe('Query parameterization tests;', function () {
         assert.strictEqual(dbQuery.values, undefined);
     });
 
-    it('Parameterization of object with unsefe results for valueOf() should result in parametrized query', () => {
+    it('Parameterization of object with unsafe results for valueOf() should result in parametrized query', () => {
         const userStatus = {
             valueOf: function () {
                 return `Te'st`;
