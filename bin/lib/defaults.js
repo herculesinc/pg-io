@@ -1,5 +1,6 @@
 "use strict";
-const Session_1 = require('./Session');
+Object.defineProperty(exports, "__esModule", { value: true });
+const Session_1 = require("./Session");
 // DEFAULTS
 // ================================================================================================
 exports.defaults = {

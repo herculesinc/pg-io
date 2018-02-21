@@ -66,10 +66,10 @@ describe('Pool Events;', () => {
         setTimeout(() => {
             expect(acquireCount).to.equal(iterations);
             pool.shutdown(done);
-        }, 1000);
+        }, 2000);
     });
 
-    it('emits error and client if an idle client in the pool hits an error', function (done) {
+    it('emits error and client if an idle client in the pool hits an error', done => {
         const pool = createNewPool();
 
         pool.acquire((err, client) => {
