@@ -358,7 +358,7 @@ describe('List query tests;', function () {
         });
     });
 
-    it('Unnamed list queries should aggregte into undefined key', () => {
+    it('Unnamed list queries should aggregate into undefined key', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
                 const query1: ListResultQuery<User> = {
@@ -388,7 +388,7 @@ describe('List query tests;', function () {
         });
     });
 
-    it('List query with a handler should be parsed using custom parsing mehtod', () => {
+    it('List query with a handler should be parsed using custom parsing method', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
                 const query: ListResultQuery<number> = {
@@ -559,7 +559,7 @@ describe('Mixed query tests;', function () {
 // ================================================================================================
 describe('Parametrized query tests;', function () {
 
-    it('Object query parametrized with number should retrive correct row', () => {
+    it('Object query parametrized with number should retrieve correct row', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
                 const query: SingleResultQuery<User> = {
@@ -578,7 +578,7 @@ describe('Parametrized query tests;', function () {
         });
     });
 
-    it('Object query parametrized with string should retrive correct row', () => {
+    it('Object query parametrized with string should retrieve correct row', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
                 const query: SingleResultQuery<User> = {
@@ -597,7 +597,7 @@ describe('Parametrized query tests;', function () {
         });
     });
 
-    it('Object query parametrized with unsafe string should retrive correct row', () => {
+    it('Object query parametrized with unsafe string should retrieve correct row', () => {
         return new Database(settings).connect().then((session) => {
             return prepareDatabase(session).then(() => {
                 const query: SingleResultQuery<User> = {
@@ -787,7 +787,7 @@ describe('Session lifecycle tests;', function () {
         });
     });
 
-    it('Commiting a transaction should update the data in the database', () => {
+    it('Committing a transaction should update the data in the database', () => {
         const database = new Database(settings);
         return database.connect().then((session) => {
             return prepareDatabase(session).then(() => {
@@ -1129,7 +1129,7 @@ describe('Error condition tests;', function () {
         });
     });
 
-    it('Executing a query after commiting a transaction should throw an error', () => {
+    it('Executing a query after committing a transaction should throw an error', () => {
         const database = new Database(settings);
 
         return database.connect({startTransaction: true}).then((session) => {

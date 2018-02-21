@@ -81,7 +81,7 @@ describe('Pool connection timeout;', () => {
                 expect(client).to.not.be.undefined;
                 expect(pool.totalCount).to.equal(1);
 
-                pool.acquire(async (err, client) => {
+                pool.acquire((err, client) => {
                     expect(err).to.be.an.instanceof(ConnectionError);
                     expect(err.message).to.contain('Connection request has timed out');
                     expect(client).to.be.undefined;

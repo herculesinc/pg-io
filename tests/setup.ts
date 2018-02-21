@@ -1,7 +1,7 @@
 ﻿// IMPORTS
 // ================================================================================================
 import { Session } from '../lib/Session';
-import { Query, SingleResultQuery, ListResultQuery, ResultHandler } from '../lib/Query';
+import { SingleResultQuery, ListResultQuery, ResultHandler } from '../lib/Query';
 
 // INTERFACES
 // ================================================================================================

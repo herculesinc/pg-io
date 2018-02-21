@@ -39,7 +39,7 @@ describe('Pool;', () => {
         pool.acquire((err, client) => {
             expect(client).to.be.undefined;
 
-            // a connection error should not polute the pool with a dead client
+            // a connection error should not pollute the pool with a dead client
             expect(pool.totalCount).to.equal(0);
 
             pool.shutdown(done);
@@ -48,7 +48,6 @@ describe('Pool;', () => {
 
     it('removes client if it errors in background', done => {
         const pool = createNewPool();
-        const testString = 'foo';
         const errorMessage = 'on purpose';
         let testClient;
 
@@ -58,7 +57,6 @@ describe('Pool;', () => {
             testClient = client;
 
             testClient.release();
-            (testClient as any).testString = testString;
 
             setTimeout(() => {
                 testClient.emit('error', new Error(errorMessage));
@@ -69,12 +67,10 @@ describe('Pool;', () => {
             expect(err.message).to.equal(errorMessage);
             expect(client).to.not.be.undefined;
             expect(client).to.equal(testClient);
-            expect((client as any).testString).to.equal(testString);
         });
 
         pool.on(CLOSED_EVENT, (client) => {
             expect(client).to.equal(testClient);
-            expect((client as any).testString).to.equal(testString);
 
             expect(pool.totalCount).to.equal(0);
 
@@ -98,7 +94,7 @@ describe('Pool;', () => {
         });
     });
 
-    it('never calls callback syncronously', done => {
+    it('never calls callback synchronously', done => {
         const pool = createNewPool();
 
         pool.acquire((err, client) => {
