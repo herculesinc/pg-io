@@ -10,7 +10,7 @@ import { Logger, buildLogger, DbLogger } from './util';
 
 // MODULE VARIABLES
 // ================================================================================================
-const ERROR_EVENT = 'error';
+export const ERROR_EVENT = 'error';
 
 // INTERFACES
 // ================================================================================================
