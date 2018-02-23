@@ -15,7 +15,7 @@ const isWin = os.type().search('Windows') > -1;
 let database, pool;
 const pgServiceName = process.env.PG_SERVICE_NAME;
 
-describe.only('Database;', function () {
+describe('Database;', function () {
     this.timeout(45000);
 
     before(async done => {
@@ -88,7 +88,7 @@ describe.only('Database;', function () {
             database.on(ERROR_EVENT, function dbErrorHandler(err) {
                 try {
                     expect(err).to.be.an.instanceof(Error);
-                    expect(err.message).to.include(isWin ? '' : 'terminating connection');
+                    expect(err.message).to.include('terminating connection');
 
                     checkPoolState(0, 0, PoolState.active);
 
@@ -124,7 +124,7 @@ describe.only('Database;', function () {
                 try {
                     expect(session).to.be.undefined;
                     expect(err).to.be.an.instanceof(Error);
-                    expect(err.message).to.include(isWin ? '' : 'ECONNREFUSED');
+                    expect(err.message).to.include(isWin ? 'shutting down' : 'ECONNREFUSED');
 
                     checkPoolState(0, 0, PoolState.active);
 
