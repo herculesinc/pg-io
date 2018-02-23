@@ -1,5 +1,4 @@
 import * as os from 'os';
-import * as http from 'http';
 import {exec} from 'child_process';
 import {expect} from 'chai';
 
@@ -13,19 +12,16 @@ import {settings} from './settings';
 
 const isWin = os.type().search('Windows') > -1;
 
-let database, pool, pgDataDir;
+let database, pool;
+const pgServiceName = process.env.PG_SERVICE_NAME;
 
 describe.only('Database;', function () {
-    this.timeout(15000);
+    this.timeout(45000);
 
     before(async done => {
         try {
             database = new Database(settings);
             pool = database.pool;
-
-            if (isWin) {
-                pgDataDir = await getPgDataDir(database);
-            }
             done();
         } catch (err) {
             done(err);
@@ -34,9 +30,6 @@ describe.only('Database;', function () {
 
     after(async done => {
         try {
-            if (pgDataDir) {
-                await startPostgresql();
-            }
             await database.close();
             done();
         } catch (err) {
@@ -95,7 +88,7 @@ describe.only('Database;', function () {
             database.on(ERROR_EVENT, function dbErrorHandler(err) {
                 try {
                     expect(err).to.be.an.instanceof(Error);
-                    expect(err.message).to.include('terminating connection');
+                    expect(err.message).to.include(isWin ? '' : 'terminating connection');
 
                     checkPoolState(0, 0, PoolState.active);
 
@@ -131,7 +124,7 @@ describe.only('Database;', function () {
                 try {
                     expect(session).to.be.undefined;
                     expect(err).to.be.an.instanceof(Error);
-                    expect(err.message).to.include('ECONNREFUSED');
+                    expect(err.message).to.include(isWin ? '' : 'ECONNREFUSED');
 
                     checkPoolState(0, 0, PoolState.active);
 
@@ -141,6 +134,13 @@ describe.only('Database;', function () {
                 }
             }
         });
+
+        if (isWin) {
+            it('waiting of pg service', async done => {
+                await wait(20000);
+                done();
+            });
+        }
 
         it('should return result without an error', async done => {
             try {
@@ -202,9 +202,6 @@ async function getUsers(session: Session, userId: number): Promise<any> {
 function execCommand(command: string): Promise<void> {
     return new Promise((resolve, reject) => {
         exec(command, (err, stdout, stderr) => {
-            console.log(err)
-            console.log(stderr)
-            console.log(stdout)
             const error = err || stderr;
 
             error ? reject(error) : resolve();
@@ -214,34 +211,18 @@ function execCommand(command: string): Promise<void> {
 
 async function startPostgresql(): Promise<void> {
     const command = isWin
-        ? `pg_ctl -D "${pgDataDir}" start`
+        ? `NET START "${pgServiceName}"`
         : 'brew services start postgresql';
 
     await execCommand(command);
-    await wait(1000);
+    await wait(2000);
 }
 
 async function stopPostgresql(): Promise<void> {
     const command = isWin
-        ? `pg_ctl -D "${pgDataDir}" stop`
+        ? `NET STOP ${pgServiceName}`
         : 'brew services stop postgresql';
 
     await execCommand(command);
-    await wait(1000);
-}
-
-async function getPgDataDir(db: Database): Promise<string> {
-    const session = await connectToDatabase(db);
-
-    const query = {
-        text: `SHOW data_directory`,
-        mask: 'single'
-    };
-
-    const result = await session.execute(query);
-
-    await session.close();
-    await wait(settings.pool.idleTimeout + 500);
-
-    return result.data_directory;
+    await wait(2000);
 }
