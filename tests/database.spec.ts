@@ -13,7 +13,7 @@ import {settings} from './settings';
 
 const isWin = os.type().search('Windows') > -1;
 
-let database, pool;
+let database, pool, pgDataDir;
 
 describe.only('Database;', function () {
     this.timeout(15000);
@@ -22,6 +22,10 @@ describe.only('Database;', function () {
         try {
             database = new Database(settings);
             pool = database.pool;
+
+            if (isWin) {
+                pgDataDir = await getPgDataDir(database);
+            }
             done();
         } catch (err) {
             done(err);
@@ -30,7 +34,9 @@ describe.only('Database;', function () {
 
     after(async done => {
         try {
-            await startPostgresql();
+            if (pgDataDir) {
+                await startPostgresql();
+            }
             await database.close();
             done();
         } catch (err) {
@@ -196,6 +202,9 @@ async function getUsers(session: Session, userId: number): Promise<any> {
 function execCommand(command: string): Promise<void> {
     return new Promise((resolve, reject) => {
         exec(command, (err, stdout, stderr) => {
+            console.log(err)
+            console.log(stderr)
+            console.log(stdout)
             const error = err || stderr;
 
             error ? reject(error) : resolve();
@@ -205,7 +214,7 @@ function execCommand(command: string): Promise<void> {
 
 async function startPostgresql(): Promise<void> {
     const command = isWin
-        ? ''
+        ? `pg_ctl -D "${pgDataDir}" start`
         : 'brew services start postgresql';
 
     await execCommand(command);
@@ -214,9 +223,25 @@ async function startPostgresql(): Promise<void> {
 
 async function stopPostgresql(): Promise<void> {
     const command = isWin
-        ? ''
+        ? `pg_ctl -D "${pgDataDir}" stop`
         : 'brew services stop postgresql';
 
     await execCommand(command);
     await wait(1000);
+}
+
+async function getPgDataDir(db: Database): Promise<string> {
+    const session = await connectToDatabase(db);
+
+    const query = {
+        text: `SHOW data_directory`,
+        mask: 'single'
+    };
+
+    const result = await session.execute(query);
+
+    await session.close();
+    await wait(settings.pool.idleTimeout + 500);
+
+    return result.data_directory;
 }
