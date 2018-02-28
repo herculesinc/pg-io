@@ -9,7 +9,7 @@ const defaults_1 = require("./defaults");
 const util_1 = require("./util");
 // MODULE VARIABLES
 // ================================================================================================
-const ERROR_EVENT = 'error';
+exports.ERROR_EVENT = 'error';
 // DATABASE CLASS
 // ================================================================================================
 class Database extends events.EventEmitter {
@@ -30,7 +30,7 @@ class Database extends events.EventEmitter {
         const connectionOptions = validateConnectionOptions(options.connection);
         this.pool = new Pool_1.ConnectionPool(options.pool, connectionOptions, this.logger);
         this.pool.on('error', (error) => {
-            this.emit(ERROR_EVENT, error);
+            this.emit(exports.ERROR_EVENT, error);
         });
     }
     // PUBLIC METHODS

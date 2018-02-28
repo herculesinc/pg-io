@@ -20,7 +20,7 @@ export interface PoolOptions {
     connectionTimeout? : number;
 }
 
-const enum PoolState {
+export const enum PoolState {
     active = 2, closing = 3, closed = 4
 }
 
