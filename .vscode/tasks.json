@@ -6,7 +6,7 @@
             "task": "clean",
             "presentation": {
                 "reveal": "silent"
-            },
+            }
         },
         {
             "type": "gulp",
